@@ -19,6 +19,13 @@ class Base(DeclarativeBase):
     pass
 
 
+# Import domain models explicitly so SQLAlchemy metadata includes them for migration generation
+# and runtime ORM usage.
+try:
+    import app.db.models  # noqa: F401
+except Exception:
+    pass
+
 _engine: AsyncEngine | None = None
 _session_factory: async_sessionmaker[AsyncSession] | None = None
 _engine_by_loop: weakref.WeakKeyDictionary[asyncio.AbstractEventLoop, AsyncEngine] = weakref.WeakKeyDictionary()
