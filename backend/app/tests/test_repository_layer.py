@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from sqlalchemy.exc import IntegrityError
@@ -17,6 +17,10 @@ def _random_github_username() -> str:
 
 def _random_repository_full_name() -> str:
     return f"repo_{uuid.uuid4().hex}/test"
+
+
+def _random_github_repo_id() -> int:
+    return (uuid.uuid4().int >> 98) & 0x7FFFFFFF
 
 
 @pytest.mark.asyncio
@@ -48,7 +52,7 @@ async def test_user_repository_create_get_by_id_and_unique_identifier() -> None:
 async def test_repository_repository_create_get_by_id_and_unique_identifiers() -> None:
     github_username = _random_github_username()
     repository_full_name = _random_repository_full_name()
-    github_repo_id = uuid.uuid4().int >> 96
+    github_repo_id = _random_github_repo_id()
 
     async for session in get_db_session():
         user_repo = UserRepository(session)
@@ -85,7 +89,7 @@ async def test_repository_repository_create_get_by_id_and_unique_identifiers() -
 async def test_analysis_repository_create_and_relationships() -> None:
     github_username = _random_github_username()
     repository_full_name = _random_repository_full_name()
-    github_repo_id = uuid.uuid4().int >> 96
+    github_repo_id = _random_github_repo_id()
 
     async for session in get_db_session():
         user_repo = UserRepository(session)
@@ -109,7 +113,7 @@ async def test_analysis_repository_create_and_relationships() -> None:
             Analysis(
                 repository_id=created_repository.id,
                 status=AnalysisStatus.RUNNING,
-                started_at=datetime.utcnow(),
+                started_at=datetime.now(timezone.utc),
             )
         )
 
@@ -134,22 +138,24 @@ async def test_analysis_repository_create_and_relationships() -> None:
 async def test_unique_constraints_for_user_and_repository() -> None:
     github_username = _random_github_username()
     repository_full_name = _random_repository_full_name()
-    github_repo_id = uuid.uuid4().int >> 96
+    github_repo_id = _random_github_repo_id()
 
     async for session in get_db_session():
         user_repo = UserRepository(session)
-        await user_repo.create(User(github_username=github_username, email=f"{github_username}@example.com"))
+        created_user = await user_repo.create(User(github_username=github_username, email=f"{github_username}@example.com"))
+        await session.commit()
 
         with pytest.raises(IntegrityError):
-            await user_repo.create(User(github_username=github_username, email="dup@example.com"))
+            async with session.begin_nested():
+                await user_repo.create(User(github_username=github_username, email="dup@example.com"))
 
         repository_repo = RepositoryRepository(session)
-        created_user = await user_repo.get_by_github_username(github_username)
-        assert created_user is not None
+        fetched_user = await user_repo.get_by_github_username(github_username)
+        assert fetched_user is not None
 
         await repository_repo.create(
             Repository(
-                owner_id=created_user.id,
+                owner_id=fetched_user.id,
                 github_repo_id=github_repo_id,
                 name="repo-test",
                 full_name=repository_full_name,
@@ -158,19 +164,21 @@ async def test_unique_constraints_for_user_and_repository() -> None:
                 visibility="public",
             )
         )
+        await session.commit()
 
         with pytest.raises(IntegrityError):
-            await repository_repo.create(
-                Repository(
-                    owner_id=created_user.id,
-                    github_repo_id=github_repo_id,
-                    name="repo-test-2",
-                    full_name=f"{repository_full_name}-other",
-                    url=f"https://github.com/{repository_full_name}-other",
-                    default_branch="main",
-                    visibility="public",
+            async with session.begin_nested():
+                await repository_repo.create(
+                    Repository(
+                        owner_id=fetched_user.id,
+                        github_repo_id=github_repo_id,
+                        name="repo-test-2",
+                        full_name=f"{repository_full_name}-other",
+                        url=f"https://github.com/{repository_full_name}-other",
+                        default_branch="main",
+                        visibility="public",
+                    )
                 )
-            )
 
 
 @pytest.mark.asyncio

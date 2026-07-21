@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     app_name: str = "RepoInsight AI API"
     environment: str = "development"
     debug: bool = False
-    database_url: str = "postgresql+asyncpg://postgres@localhost:55432/repoinsight"
+    database_url: str = "postgresql+asyncpg://postgres:12345678@localhost:5432/repoinsight_ai"
     database_echo: bool = False
 
     model_config = SettingsConfigDict(
