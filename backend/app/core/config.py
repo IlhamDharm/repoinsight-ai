@@ -10,6 +10,11 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://postgres:12345678@localhost:5432/repoinsight_ai"
     database_echo: bool = False
 
+    # GitHub Integration
+    github_api_url: str = "https://api.github.com"
+    github_token: str = ""
+    github_timeout: float = 10.0
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_prefix="REPOINSIGHT_",

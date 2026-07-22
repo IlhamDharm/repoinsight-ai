@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.v1.health import router as health_router
+from app.api.v1.repositories import router as repositories_router
 from app.core.config import get_settings
 from app.core.dependencies import get_request_id_dependency
 from app.core.exceptions import AppException
@@ -27,6 +28,7 @@ app = FastAPI(
 app.add_middleware(RequestIDMiddleware)
 app.add_middleware(LoggingMiddleware)
 app.include_router(health_router, prefix="/api/v1/health", tags=["health"])
+app.include_router(repositories_router, prefix="/api/v1/repositories", tags=["repositories"])
 
 
 @app.exception_handler(AppException)
@@ -59,10 +61,16 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException) 
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+    import json as _json
     request_id = getattr(request.state, "request_id", None)
+    # Pydantic v2 errors() bisa mengandung objek Exception nested — stringify via json round-trip
+    try:
+        safe_errors = _json.loads(_json.dumps(exc.errors(), default=str))
+    except Exception:
+        safe_errors = str(exc)
     return JSONResponse(
         status_code=422,
-        content=build_error_payload("Invalid request payload", "validation_error", request_id=request_id, details=exc.errors()),
+        content=build_error_payload("Invalid request payload", "validation_error", request_id=request_id, details=safe_errors),
     )
 
 
