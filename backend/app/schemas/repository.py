@@ -32,3 +32,25 @@ class RepositoryResponse(BaseModel):
     visibility: str
     created_at: datetime
     updated_at: datetime
+
+
+class ScannedFileResponse(BaseModel):
+    """Schema untuk metadata file yang telah di-scan."""
+
+    path: str
+    language: str
+    size: int
+    lines: int
+
+
+class RepositoryScanResponse(BaseModel):
+    """Response body untuk normalized repository scan result."""
+
+    repository: str
+    branch: str
+    total_files: int
+    total_source_files: int
+    total_lines: int
+    languages: dict[str, int]
+    files: list[ScannedFileResponse]
+

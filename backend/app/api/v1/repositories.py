@@ -13,8 +13,13 @@ from app.core.database import get_db_session
 from app.core.dependencies import get_github_client, get_request_id_dependency
 from app.core.response import build_success_payload
 from app.integrations.github.client import GitHubClient
-from app.schemas.repository import RegisterRepositoryRequest, RepositoryResponse
+from app.schemas.repository import (
+    RegisterRepositoryRequest,
+    RepositoryResponse,
+    RepositoryScanResponse,
+)
 from app.services.github_sync import RepositorySyncService
+from app.services.repository_scanner import RepositoryScanService
 
 router = APIRouter()
 
@@ -27,25 +32,7 @@ async def register_repository(
     session: AsyncSession = Depends(get_db_session),
     github_client: GitHubClient = Depends(get_github_client),
 ) -> JSONResponse:
-    """Daftarkan GitHub repository atau perbarui metadata-nya jika sudah ada.
-
-    Menerima GitHub URL, mengambil metadata dari GitHub API, lalu menyimpan
-    atau memperbarui record di database.
-
-    Args:
-        body: Request body berisi URL GitHub repository.
-
-    Returns:
-        201 Created — Repository baru berhasil didaftarkan atau data diperbarui.
-
-    Raises:
-        422 — URL tidak valid atau bukan URL GitHub.
-        404 — Repository tidak ditemukan di GitHub.
-        429 — GitHub API rate limit terlampaui.
-        401 — Token GitHub tidak valid.
-        504 — GitHub API timeout.
-        502 — GitHub API tidak dapat dihubungi atau mengembalikan error server.
-    """
+    """Daftarkan GitHub repository atau perbarui metadata-nya jika sudah ada."""
     service = RepositorySyncService(session=session, github_client=github_client)
     repository = await service.sync_repository(body.url)
 
@@ -68,3 +55,49 @@ async def register_repository(
             request_id=request_id,
         ),
     )
+
+
+@router.post("/{repository_id}/scan", status_code=200)
+async def scan_repository(
+    repository_id: int,
+    request: Request,
+    request_id: str = Depends(get_request_id_dependency),
+    session: AsyncSession = Depends(get_db_session),
+    github_client: GitHubClient = Depends(get_github_client),
+) -> JSONResponse:
+    """Memulai basic repository content & code scan.
+
+    Args:
+        repository_id: ID repository di database lokal.
+
+    Returns:
+        200 OK — Hasil scan berisi normalized repository structure.
+
+    Raises:
+        404 — Repository tidak ditemukan di database atau di GitHub.
+        429 — GitHub API rate limit terlampaui.
+        401 — Token GitHub tidak valid.
+        504 — GitHub API timeout.
+        502 — External service error.
+    """
+    scanner_service = RepositoryScanService(session=session, github_client=github_client)
+    scan_result = await scanner_service.scan_repository(repository_id)
+
+    response_data = RepositoryScanResponse(
+        repository=scan_result.repository,
+        branch=scan_result.branch,
+        total_files=scan_result.total_files,
+        total_source_files=scan_result.total_source_files,
+        total_lines=scan_result.total_lines,
+        languages=scan_result.languages,
+        files=[f.to_dict() for f in scan_result.files],
+    )
+
+    return JSONResponse(
+        status_code=200,
+        content=build_success_payload(
+            response_data.model_dump(mode="json"),
+            request_id=request_id,
+        ),
+    )
+
