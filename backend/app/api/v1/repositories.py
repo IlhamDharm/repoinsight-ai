@@ -13,11 +13,13 @@ from app.core.database import get_db_session
 from app.core.dependencies import get_github_client, get_request_id_dependency
 from app.core.response import build_success_payload
 from app.integrations.github.client import GitHubClient
+from app.schemas.analysis import AnalysisResponse
 from app.schemas.repository import (
     RegisterRepositoryRequest,
     RepositoryResponse,
     RepositoryScanResponse,
 )
+from app.services.analysis import AnalysisService
 from app.services.github_sync import RepositorySyncService
 from app.services.repository_scanner import RepositoryScanService
 
@@ -91,6 +93,48 @@ async def scan_repository(
         total_lines=scan_result.total_lines,
         languages=scan_result.languages,
         files=[f.to_dict() for f in scan_result.files],
+    )
+
+    return JSONResponse(
+        status_code=200,
+        content=build_success_payload(
+            response_data.model_dump(mode="json"),
+            request_id=request_id,
+        ),
+    )
+
+
+@router.post("/{repository_id}/analyze", status_code=200)
+async def analyze_repository(
+    repository_id: int,
+    request: Request,
+    request_id: str = Depends(get_request_id_dependency),
+    session: AsyncSession = Depends(get_db_session),
+    github_client: GitHubClient = Depends(get_github_client),
+) -> JSONResponse:
+    """Memulai AI Static Analysis Engine pada repository.
+
+    Args:
+        repository_id: ID repository di database lokal.
+
+    Returns:
+        200 OK — Hasil analisis berisi summary, scores, findings, dan recommendations.
+    """
+    analysis_service = AnalysisService(session=session, github_client=github_client)
+    analysis = await analysis_service.analyze_repository(repository_id)
+
+    response_data = AnalysisResponse(
+        id=analysis.id,
+        repository_id=analysis.repository_id,
+        status=analysis.status.value if hasattr(analysis.status, "value") else str(analysis.status),
+        started_at=analysis.started_at,
+        completed_at=analysis.completed_at,
+        created_at=analysis.created_at,
+        error_message=analysis.error_message,
+        summary=analysis.summary,
+        scores=analysis.scores,
+        findings=analysis.findings,
+        recommendations=analysis.recommendations,
     )
 
     return JSONResponse(

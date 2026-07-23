@@ -171,5 +171,9 @@ class FileFilter:
         if size is not None and size > self.config.max_file_size_bytes:
             return False
 
+        # Terima manifest file khusus (mis. requirements.txt, Dockerfile, Pipfile)
+        if filename_lower in {"requirements.txt", "dockerfile", "pipfile", "makefile"}:
+            return True
+
         # Hanya terima file dengan ekstensi yang diizinkan
         return ext_lower in self.config.allowed_extensions

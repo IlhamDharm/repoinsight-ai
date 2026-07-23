@@ -14,14 +14,18 @@ class ScannedFileMetadata:
     language: str
     size: int
     lines: int
+    content: str | None = None
 
     def to_dict(self) -> dict:
-        return {
+        data = {
             "path": self.path,
             "language": self.language,
             "size": self.size,
             "lines": self.lines,
         }
+        if self.content is not None:
+            data["content"] = self.content
+        return data
 
 
 @dataclass
@@ -94,6 +98,7 @@ class CodeScanner:
                     language=lang,
                     size=size,
                     lines=lines,
+                    content=content,
                 )
             )
 

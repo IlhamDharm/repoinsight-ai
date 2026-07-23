@@ -63,3 +63,7 @@ class Analysis(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=sa.func.now(), nullable=False)
     error_message: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+    summary: Mapped[dict | None] = mapped_column(sa.JSON, nullable=True)
+    scores: Mapped[dict | None] = mapped_column(sa.JSON, nullable=True)
+    findings: Mapped[list | None] = mapped_column(sa.JSON, nullable=True)
+    recommendations: Mapped[list | None] = mapped_column(sa.JSON, nullable=True)
