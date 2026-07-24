@@ -22,6 +22,18 @@ class AnalysisRepository(BaseRepository[Analysis]):
         result = await self._session.execute(statement)
         return list(result.scalars().all())
 
+    async def get_active_analysis_by_repo(self, repository_id: int) -> Analysis | None:
+        statement = (
+            select(Analysis)
+            .where(
+                Analysis.repository_id == repository_id,
+                Analysis.status.in_([AnalysisStatus.PENDING, AnalysisStatus.RUNNING]),
+            )
+            .order_by(Analysis.created_at.desc())
+        )
+        result = await self._session.execute(statement)
+        return result.scalars().first()
+
     async def create_analysis(self, repository_id: int) -> Analysis:
         analysis = Analysis(
             repository_id=repository_id,

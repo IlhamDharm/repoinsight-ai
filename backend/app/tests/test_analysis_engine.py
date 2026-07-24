@@ -367,7 +367,8 @@ def test_recommendation_engine_generates_recommendations():
 # H & I. Analysis API Endpoint Integration Tests
 # ============================================================================
 
-def test_analyze_repository_endpoint_success():
+def test_analyze_repository_endpoint_returns_202_and_result_accessible():
+    """POST /analyze mengembalikan 202 Accepted; hasil dapat diakses via GET /analyses/{id}."""
     client = TestClient(app)
 
     repo_id = _random_github_repo_id()
@@ -426,24 +427,39 @@ def test_analyze_repository_endpoint_success():
 
     mock_github.get_file_content.side_effect = mock_get_content
 
-    # 3. Trigger analyze endpoint
+    # 3. Trigger analyze endpoint — expect 202 Accepted (background task runs sync in TestClient)
     analyze_resp = client.post(f"/api/v1/repositories/{db_id}/analyze")
-    app.dependency_overrides.clear()
 
-    assert analyze_resp.status_code == 200
+    assert analyze_resp.status_code == 202
     json_body = analyze_resp.json()
     assert json_body["success"] is True
     data = json_body["data"]
     assert data["repository_id"] == db_id
-    assert data["status"] == "COMPLETED"
-    assert "scores" in data
-    assert data["scores"]["code_quality"] == 100
-    assert data["scores"]["architecture"] == 100
-    assert data["scores"]["maintainability"] == 100
-    assert "summary" in data
-    assert data["summary"]["dominant_language"] == "Python"
-    assert "findings" in data
-    assert "recommendations" in data
+    assert "analysis_id" in data
+    analysis_id = data["analysis_id"]
+    # Status saat POST selesai adalah PENDING (background task belum dijalankan saat JSON dibuat)
+    assert data["status"] in ("PENDING", "RUNNING", "COMPLETED")
+
+    # 4. TestClient menjalankan BackgroundTasks secara synchronous setelah response.
+    #    GET /api/v1/analyses/{id} harus sudah COMPLETED.
+    status_resp = client.get(f"/api/v1/analyses/{analysis_id}")
+    app.dependency_overrides.clear()
+
+    assert status_resp.status_code == 200
+    status_body = status_resp.json()
+    assert status_body["success"] is True
+    result = status_body["data"]
+    assert result["id"] == analysis_id
+    assert result["repository_id"] == db_id
+    assert result["status"] == "COMPLETED"
+    assert "scores" in result
+    assert result["scores"]["code_quality"] == 100
+    assert result["scores"]["architecture"] == 100
+    assert result["scores"]["maintainability"] == 100
+    assert "summary" in result
+    assert result["summary"]["dominant_language"] == "Python"
+    assert "findings" in result
+    assert "recommendations" in result
 
 
 def test_analyze_repository_endpoint_not_found():
@@ -458,3 +474,4 @@ def test_analyze_repository_endpoint_not_found():
     json_body = resp.json()
     assert json_body["success"] is False
     assert json_body["error"]["code"] == "not_found"
+

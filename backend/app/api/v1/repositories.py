@@ -1,11 +1,13 @@
 """API endpoint untuk manajemen repository.
 
 Endpoints:
-    POST /api/v1/repositories — Daftarkan atau perbarui GitHub repository
+    POST /api/v1/repositories              — Daftarkan atau perbarui GitHub repository
+    POST /api/v1/repositories/{id}/scan   — Scan repository content
+    POST /api/v1/repositories/{id}/analyze — Jadwalkan analysis (async, returns 202)
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,13 +15,14 @@ from app.core.database import get_db_session
 from app.core.dependencies import get_github_client, get_request_id_dependency
 from app.core.response import build_success_payload
 from app.integrations.github.client import GitHubClient
-from app.schemas.analysis import AnalysisResponse
+from app.schemas.analysis import AnalysisJobResponse
 from app.schemas.repository import (
     RegisterRepositoryRequest,
     RepositoryResponse,
     RepositoryScanResponse,
 )
-from app.services.analysis import AnalysisService
+from app.services.analysis import run_background_analysis
+from app.services.analysis.job_service import AnalysisJobService
 from app.services.github_sync import RepositorySyncService
 from app.services.repository_scanner import RepositoryScanService
 
@@ -104,44 +107,54 @@ async def scan_repository(
     )
 
 
-@router.post("/{repository_id}/analyze", status_code=200)
+@router.post("/{repository_id}/analyze", status_code=202)
 async def analyze_repository(
     repository_id: int,
     request: Request,
+    background_tasks: BackgroundTasks,
     request_id: str = Depends(get_request_id_dependency),
     session: AsyncSession = Depends(get_db_session),
     github_client: GitHubClient = Depends(get_github_client),
 ) -> JSONResponse:
-    """Memulai AI Static Analysis Engine pada repository.
+    """Jadwalkan asynchronous AI Static Analysis Engine pada repository.
+
+    Endpoint ini langsung mengembalikan HTTP 202 Accepted tanpa menunggu
+    proses analisis selesai. Proses analisis berjalan di background.
+
+    Gunakan GET /api/v1/analyses/{analysis_id} untuk memantau status.
 
     Args:
         repository_id: ID repository di database lokal.
 
     Returns:
-        200 OK — Hasil analisis berisi summary, scores, findings, dan recommendations.
-    """
-    analysis_service = AnalysisService(session=session, github_client=github_client)
-    analysis = await analysis_service.analyze_repository(repository_id)
+        202 Accepted — analysis_id, repository_id, dan status "PENDING".
 
-    response_data = AnalysisResponse(
-        id=analysis.id,
+    Raises:
+        404 — Repository tidak ditemukan di database.
+        409 — Sudah ada analysis aktif (PENDING/RUNNING) untuk repository ini.
+    """
+    # Buat analysis job dengan status PENDING
+    job_service = AnalysisJobService(session)
+    analysis = await job_service.create_analysis_job(repository_id)
+
+    # Jadwalkan background task — HTTP response tidak menunggu ini selesai
+    background_tasks.add_task(
+        run_background_analysis,
+        analysis_id=analysis.id,
+        repository_id=repository_id,
+        github_client=github_client,
+    )
+
+    response_data = AnalysisJobResponse(
+        analysis_id=analysis.id,
         repository_id=analysis.repository_id,
         status=analysis.status.value if hasattr(analysis.status, "value") else str(analysis.status),
-        started_at=analysis.started_at,
-        completed_at=analysis.completed_at,
-        created_at=analysis.created_at,
-        error_message=analysis.error_message,
-        summary=analysis.summary,
-        scores=analysis.scores,
-        findings=analysis.findings,
-        recommendations=analysis.recommendations,
     )
 
     return JSONResponse(
-        status_code=200,
+        status_code=202,
         content=build_success_payload(
             response_data.model_dump(mode="json"),
             request_id=request_id,
         ),
     )
-

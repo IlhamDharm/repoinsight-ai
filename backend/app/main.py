@@ -5,6 +5,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from app.api.v1.analyses import router as analyses_router
 from app.api.v1.health import router as health_router
 from app.api.v1.repositories import router as repositories_router
 from app.core.config import get_settings
@@ -29,6 +30,7 @@ app.add_middleware(RequestIDMiddleware)
 app.add_middleware(LoggingMiddleware)
 app.include_router(health_router, prefix="/api/v1/health", tags=["health"])
 app.include_router(repositories_router, prefix="/api/v1/repositories", tags=["repositories"])
+app.include_router(analyses_router, prefix="/api/v1/analyses", tags=["analyses"])
 
 
 @app.exception_handler(AppException)
