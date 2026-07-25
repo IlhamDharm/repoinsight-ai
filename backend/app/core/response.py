@@ -3,14 +3,18 @@ from typing import Any
 from app.core.utils import build_timestamp, serialize_for_response
 
 
-def build_success_payload(data: Any, request_id: str | None = None) -> dict[str, Any]:
+def build_success_payload(data: Any, request_id: str | None = None, meta_extra: dict[str, Any] | None = None) -> dict[str, Any]:
+    meta = {
+        "request_id": request_id or "unknown",
+        "timestamp": build_timestamp(),
+    }
+    if meta_extra:
+        meta.update(meta_extra)
+
     return {
         "success": True,
         "data": serialize_for_response(data),
-        "meta": {
-            "request_id": request_id or "unknown",
-            "timestamp": build_timestamp(),
-        },
+        "meta": meta,
     }
 
 

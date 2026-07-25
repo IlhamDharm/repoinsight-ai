@@ -6,6 +6,8 @@ from typing import Any
 
 from pydantic import BaseModel
 
+from app.schemas.common import PaginationMeta
+
 
 class FindingSchema(BaseModel):
     rule_id: str
@@ -85,3 +87,35 @@ class AnalysisStatusResponse(BaseModel):
     recommendations: list[str] | None = None
     # Hanya tersedia jika status == FAILED
     error: AnalysisErrorPayload | None = None
+
+
+# ─── Sprint 10: History & Comparison Schemas ──────────────────────────────────
+
+class AnalysisHistoryItem(BaseModel):
+    id: int
+    status: str
+    created_at: datetime
+    completed_at: datetime | None = None
+    score: int | None = None
+
+
+class AnalysisHistoryResponse(BaseModel):
+    success: bool = True
+    data: list[AnalysisHistoryItem]
+    meta: PaginationMeta
+
+
+class AnalysisComparisonData(BaseModel):
+    current_analysis_id: int
+    previous_analysis_id: int
+    score_change: int
+    current_score: int
+    previous_score: int
+    category_changes: dict[str, int]
+    findings_change: int
+
+
+class AnalysisComparisonResponse(BaseModel):
+    success: bool = True
+    data: AnalysisComparisonData
+    meta: dict[str, Any] = {}

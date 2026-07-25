@@ -1,7 +1,8 @@
-"""API endpoint untuk mengambil status dan hasil analysis.
+"""API endpoint untuk mengambil status, hasil analysis, dan komparasi.
 
 Endpoints:
     GET /api/v1/analyses/{analysis_id} — Status check dan hasil analisis
+    GET /api/v1/analyses/{analysis_id}/compare/{previous_analysis_id} — Komparasi dua analisis
 """
 from __future__ import annotations
 
@@ -13,8 +14,9 @@ from app.core.database import get_db_session
 from app.core.dependencies import get_request_id_dependency
 from app.core.response import build_success_payload
 from app.db.models import AnalysisStatus
-from app.schemas.analysis import AnalysisErrorPayload, AnalysisStatusResponse
+from app.schemas.analysis import AnalysisErrorPayload, AnalysisStatusResponse, AnalysisComparisonResponse
 from app.services.analysis.job_service import AnalysisJobService
+from app.services.analysis.history_service import AnalysisHistoryService
 
 router = APIRouter()
 
@@ -73,5 +75,44 @@ async def get_analysis_status(
         content=build_success_payload(
             response_data.model_dump(mode="json"),
             request_id=request_id,
+        ),
+    )
+
+
+@router.get("/{analysis_id}/compare/{previous_analysis_id}", status_code=200)
+async def compare_analyses(
+    analysis_id: int,
+    previous_analysis_id: int,
+    request: Request,
+    request_id: str = Depends(get_request_id_dependency),
+    session: AsyncSession = Depends(get_db_session),
+) -> JSONResponse:
+    """Bandingkan dua analysis result.
+    
+    Args:
+        analysis_id: ID analysis job saat ini.
+        previous_analysis_id: ID analysis job sebelumnya.
+        
+    Returns:
+        200 OK — Data komparasi.
+        
+    Raises:
+        400 — Analysis berbeda repository atau belum COMPLETED.
+        404 — Analysis tidak ditemukan.
+    """
+    history_service = AnalysisHistoryService(session)
+    comparison_data = await history_service.compare_analyses(
+        current_analysis_id=analysis_id,
+        previous_analysis_id=previous_analysis_id,
+    )
+
+    response_data = AnalysisComparisonResponse(data=comparison_data)
+
+    return JSONResponse(
+        status_code=200,
+        content=build_success_payload(
+            response_data.model_dump(mode="json")["data"],
+            request_id=request_id,
+            meta_extra=response_data.model_dump(mode="json")["meta"],
         ),
     )

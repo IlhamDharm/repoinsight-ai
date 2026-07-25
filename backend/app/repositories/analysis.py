@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import Analysis, AnalysisStatus
@@ -13,9 +13,20 @@ class AnalysisRepository(BaseRepository[Analysis]):
         super().__init__(session, Analysis)
 
     async def list_by_repository(self, repository_id: int, offset: int = 0, limit: int = 100) -> list[Analysis]:
-        statement = select(Analysis).where(Analysis.repository_id == repository_id).offset(offset).limit(limit)
+        statement = (
+            select(Analysis)
+            .where(Analysis.repository_id == repository_id)
+            .order_by(Analysis.created_at.desc())
+            .offset(offset)
+            .limit(limit)
+        )
         result = await self._session.execute(statement)
         return list(result.scalars().all())
+
+    async def count_by_repository(self, repository_id: int) -> int:
+        statement = select(func.count(Analysis.id)).where(Analysis.repository_id == repository_id)
+        result = await self._session.execute(statement)
+        return result.scalar() or 0
 
     async def list_by_status(self, status: AnalysisStatus, offset: int = 0, limit: int = 100) -> list[Analysis]:
         statement = select(Analysis).where(Analysis.status == status).offset(offset).limit(limit)

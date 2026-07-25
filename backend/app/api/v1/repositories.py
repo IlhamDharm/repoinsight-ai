@@ -4,10 +4,11 @@ Endpoints:
     POST /api/v1/repositories              — Daftarkan atau perbarui GitHub repository
     POST /api/v1/repositories/{id}/scan   — Scan repository content
     POST /api/v1/repositories/{id}/analyze — Jadwalkan analysis (async, returns 202)
+    GET /api/v1/repositories/{id}/analyses — Ambil history analysis repository
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Request, Query
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,6 +24,7 @@ from app.schemas.repository import (
 )
 from app.services.analysis import run_background_analysis
 from app.services.analysis.job_service import AnalysisJobService
+from app.services.analysis.history_service import AnalysisHistoryService
 from app.services.github_sync import RepositorySyncService
 from app.services.repository_scanner import RepositoryScanService
 
@@ -156,5 +158,44 @@ async def analyze_repository(
         content=build_success_payload(
             response_data.model_dump(mode="json"),
             request_id=request_id,
+        ),
+    )
+
+
+@router.get("/{repository_id}/analyses", status_code=200)
+async def get_analysis_history(
+    repository_id: int,
+    request: Request,
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(20, ge=1, le=100, description="Items per page"),
+    request_id: str = Depends(get_request_id_dependency),
+    session: AsyncSession = Depends(get_db_session),
+) -> JSONResponse:
+    """Ambil history analysis untuk sebuah repository.
+    
+    Args:
+        repository_id: ID repository di database lokal.
+        page: Nomor halaman (default: 1)
+        page_size: Jumlah item per halaman (default: 20, max: 100)
+        
+    Returns:
+        200 OK — Daftar riwayat analysis.
+        
+    Raises:
+        404 — Repository tidak ditemukan.
+    """
+    history_service = AnalysisHistoryService(session)
+    history_response = await history_service.get_analysis_history(
+        repository_id=repository_id, 
+        page=page, 
+        page_size=page_size
+    )
+
+    return JSONResponse(
+        status_code=200,
+        content=build_success_payload(
+            history_response.model_dump(mode="json")["data"],
+            request_id=request_id,
+            meta_extra=history_response.model_dump(mode="json")["meta"],
         ),
     )
