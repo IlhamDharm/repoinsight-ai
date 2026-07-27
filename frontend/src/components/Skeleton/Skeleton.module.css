@@ -1,5 +1,5 @@
 .skeleton {
-  background: var(--bg-hover);
+  background: var(--bg-tertiary);
   border-radius: var(--radius-md);
   position: relative;
   overflow: hidden;
@@ -12,7 +12,7 @@
   background: linear-gradient(
     90deg,
     transparent 0%,
-    var(--bg-tertiary) 50%,
+    rgba(255, 255, 255, 0.4) 50%,
     transparent 100%
   );
   background-size: 200% 100%;
@@ -27,7 +27,7 @@
 
 .line {
   height: 0.75rem;
-  background: var(--bg-hover);
+  background: var(--bg-tertiary);
   border-radius: var(--radius-sm);
   position: relative;
   overflow: hidden;
@@ -40,7 +40,7 @@
   background: linear-gradient(
     90deg,
     transparent 0%,
-    var(--bg-tertiary) 50%,
+    rgba(255, 255, 255, 0.4) 50%,
     transparent 100%
   );
   background-size: 200% 100%;
@@ -48,13 +48,14 @@
 }
 
 .card {
-  background: var(--bg-tertiary);
+  background: var(--bg-secondary);
   border: 1px solid var(--border-primary);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   padding: var(--space-5);
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  box-shadow: var(--shadow-sm);
 }
 
 .cardHeader {
@@ -68,13 +69,14 @@
 }
 
 .stat {
-  background: var(--bg-tertiary);
+  background: var(--bg-secondary);
   border: 1px solid var(--border-primary);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   padding: var(--space-5);
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  box-shadow: var(--shadow-sm);
 }
 
 @keyframes shimmer {

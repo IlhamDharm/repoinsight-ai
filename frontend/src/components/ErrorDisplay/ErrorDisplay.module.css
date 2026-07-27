@@ -4,12 +4,13 @@
   align-items: center;
   padding: var(--space-12) var(--space-4);
   text-align: center;
+  animation: fadeIn 0.3s ease-out;
 }
 
 .icon {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-lg);
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-xl);
   background: var(--error-muted);
   color: var(--error);
   font-size: var(--text-xl);
@@ -32,19 +33,26 @@
   color: var(--text-secondary);
   max-width: 360px;
   margin-bottom: var(--space-6);
+  line-height: var(--leading-normal);
 }
 
 .retryButton {
   padding: var(--space-2) var(--space-5);
-  background: var(--accent);
+  background: var(--gradient-accent);
   color: white;
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   font-size: var(--text-sm);
-  font-weight: 500;
-  transition: background var(--transition-fast);
+  font-weight: 600;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-glow);
 }
 
 .retryButton:hover {
-  background: var(--accent-hover);
+  box-shadow: var(--shadow-glow-strong);
+  transform: translateY(-1px);
+}
+
+.retryButton:active {
+  transform: translateY(0);
 }

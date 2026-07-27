@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiRequestFull } from "../../api/client";
 import { ApiError } from "../../utils/errors";
@@ -15,6 +15,7 @@ export function RepositoriesPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<{ statusCode?: number; error: unknown } | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const [registerUrl, setRegisterUrl] = useState("");
   const [isRegistering, setIsRegistering] = useState(false);
@@ -71,6 +72,16 @@ export function RepositoriesPage() {
     }
   };
 
+  const filteredRepos = useMemo(() => {
+    if (!searchQuery.trim()) return repositories;
+    const q = searchQuery.toLowerCase();
+    return repositories.filter(
+      (repo) =>
+        repo.name.toLowerCase().includes(q) ||
+        repo.full_name.toLowerCase().includes(q)
+    );
+  }, [repositories, searchQuery]);
+
   if (error) {
     return (
       <ErrorDisplay
@@ -86,6 +97,9 @@ export function RepositoriesPage() {
       <div className={styles.pageHeader}>
         <h1 className={styles.title}>Repositories</h1>
       </div>
+      <p className={styles.description}>
+        Kelola repository GitHub yang terdaftar dan jalankan analisis kode.
+      </p>
 
       <div className={styles.registerSection}>
         <form onSubmit={handleRegister} className={styles.registerForm}>
@@ -104,7 +118,7 @@ export function RepositoriesPage() {
             className={styles.registerButton}
             disabled={isRegistering || !registerUrl.trim()}
           >
-            {isRegistering ? "..." : "Daftarkan"}
+            {isRegistering ? "..." : "Tambah Repository"}
           </button>
         </form>
         {registerError && <div className={styles.registerError}>{registerError}</div>}
@@ -113,15 +127,29 @@ export function RepositoriesPage() {
       {isLoading ? (
         <LoadingSpinner message="Memuat repositories..." />
       ) : repositories.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "var(--space-12) 0" }}>
-          <p style={{ color: "var(--text-muted)", fontSize: "var(--text-sm)", marginBottom: "var(--space-4)" }}>
-            Belum ada repositories. Daftarkan repository pertama Anda di atas.
+        <div style={{ textAlign: "center", padding: "var(--space-16) 0" }}>
+          <div style={{ fontSize: "3rem", marginBottom: "var(--space-4)" }}>📦</div>
+          <p style={{ color: "var(--text-muted)", fontSize: "var(--text-sm)", marginBottom: "var(--space-2)" }}>
+            Belum ada repositories.
+          </p>
+          <p style={{ color: "var(--text-disabled)", fontSize: "var(--text-xs)" }}>
+            Daftarkan repository pertama Anda menggunakan form di atas.
           </p>
         </div>
       ) : (
         <>
+          <input
+            type="text"
+            className={styles.registerInput}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Cari repository..."
+            aria-label="Search repositories"
+            style={{ marginBottom: "var(--space-4)", maxWidth: "320px" }}
+          />
+
           <div className={styles.grid}>
-            {repositories.map((repo) => (
+            {filteredRepos.map((repo) => (
               <Link
                 key={repo.id}
                 to={`/repositories/${repo.id}`}
@@ -142,7 +170,7 @@ export function RepositoriesPage() {
                 <p className={styles.fullName}>{repo.full_name}</p>
                 <div className={styles.cardMeta}>
                   <span>{repo.default_branch}</span>
-                  <span className={styles.viewDetail}>Detail →</span>
+                  <span className={styles.viewDetail}>Lihat detail →</span>
                 </div>
               </Link>
             ))}

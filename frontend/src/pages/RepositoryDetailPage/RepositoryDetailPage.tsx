@@ -104,10 +104,13 @@ export function RepositoryDetailPage() {
 
   return (
     <div className={styles.page}>
+      <nav className={styles.breadcrumb}>
+        <Link to="/repositories" className={styles.breadcrumbLink}>Repositories</Link>
+        <span className={styles.breadcrumbSep}>/</span>
+        <span className={styles.breadcrumbCurrent}>{repository.name}</span>
+      </nav>
+
       <div className={styles.header}>
-        <Link to="/repositories" className={styles.backLink}>
-          ← Kembali
-        </Link>
         <div className={styles.titleRow}>
           <h1 className={styles.title}>{repository.name}</h1>
           <span
@@ -140,7 +143,7 @@ export function RepositoryDetailPage() {
           onClick={handleAnalyze}
           disabled={isStartingAnalysis}
         >
-          {isStartingAnalysis ? "Menjadwalkan..." : "Mulai Analisis"}
+          {isStartingAnalysis ? "Menjadwalkan..." : "Mulai Analisis Baru"}
         </button>
       </div>
 
@@ -155,7 +158,7 @@ export function RepositoryDetailPage() {
           <EmptyState
             icon="📊"
             title="Belum ada analisis"
-            description="Klik 'Mulai Analisis' untuk menjalankan analisis pertama."
+            description="Klik 'Mulai Analisis Baru' untuk menjalankan analisis pertama."
           />
         ) : (
           <>

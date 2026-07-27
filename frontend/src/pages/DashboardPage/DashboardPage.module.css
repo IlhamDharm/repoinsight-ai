@@ -1,45 +1,77 @@
 .page {
-  padding-top: var(--space-2);
+  animation: fadeIn 0.3s ease-out;
 }
 
 .greeting {
-  margin-bottom: var(--space-8);
+  margin-bottom: var(--space-10);
 }
 
 .greetingText {
   font-size: var(--text-sm);
   color: var(--text-muted);
-  margin: 0 0 var(--space-1);
+  margin: 0 0 var(--space-2);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-weight: 500;
+  letter-spacing: 0.08em;
+  font-weight: 600;
 }
 
 .greetingName {
-  font-size: var(--text-2xl);
+  font-size: var(--text-3xl);
   font-weight: 700;
   color: var(--text-primary);
   margin: 0;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
 }
 
 .metricsGrid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: var(--space-4);
-  margin-bottom: var(--space-8);
+  margin-bottom: var(--space-10);
 }
 
 .metricCard {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--radius-lg);
-  padding: var(--space-5);
-  transition: border-color var(--transition-fast);
+  background: var(--glass-bg-strong);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-sm);
 }
 
 .metricCard:hover {
-  border-color: var(--border-strong);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--accent-muted);
+}
+
+.metricIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-md);
+  margin-bottom: var(--space-3);
+}
+
+.metricIconRepos {
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.metricIconAnalyses {
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.metricIconCompleted {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.metricIconRunning {
+  background: rgba(245, 158, 11, 0.1);
 }
 
 .metricValue {
@@ -48,11 +80,13 @@
   color: var(--text-primary);
   line-height: var(--leading-tight);
   margin-bottom: var(--space-1);
+  letter-spacing: -0.02em;
 }
 
 .metricLabel {
   font-size: var(--text-sm);
   color: var(--text-muted);
+  font-weight: 500;
 }
 
 .section {
@@ -67,38 +101,43 @@
 }
 
 .sectionTitle {
-  font-size: var(--text-base);
+  font-size: var(--text-lg);
   font-weight: 600;
   color: var(--text-primary);
   margin: 0;
+  letter-spacing: -0.01em;
 }
 
 .sectionLink {
   font-size: var(--text-sm);
-  color: var(--text-muted);
+  color: var(--accent);
   text-decoration: none;
+  font-weight: 500;
   transition: color var(--transition-fast);
 }
 
 .sectionLink:hover {
-  color: var(--accent);
+  color: var(--accent-hover);
 }
 
 .activityList {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--radius-lg);
+  background: var(--glass-bg-strong);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
   overflow: hidden;
+  box-shadow: var(--shadow-sm);
 }
 
 .activityItem {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-3) var(--space-5);
+  padding: var(--space-4) var(--space-5);
   border-bottom: 1px solid var(--border-subtle);
   text-decoration: none;
-  transition: background var(--transition-fast);
+  transition: all var(--transition-fast);
 }
 
 .activityItem:last-child {
@@ -116,7 +155,7 @@
 
 .activityRepo {
   font-size: var(--text-sm);
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -127,7 +166,7 @@
 .activityTime {
   font-size: var(--text-xs);
   color: var(--text-muted);
-  margin-top: 2px;
+  margin-top: 3px;
 }
 
 .activityRight {
@@ -145,25 +184,6 @@
   font-family: var(--font-mono);
 }
 
-.ctaButton {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
-  background: var(--accent);
-  color: white;
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  text-decoration: none;
-  transition: background var(--transition-fast);
-}
-
-.ctaButton:hover {
-  background: var(--accent-hover);
-}
-
 .emptyActions {
   display: flex;
   gap: var(--space-3);
@@ -172,9 +192,9 @@
 
 .emptyButton {
   padding: var(--space-2) var(--space-4);
-  background: var(--bg-tertiary);
+  background: var(--bg-secondary);
   border: 1px solid var(--border-primary);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   font-size: var(--text-sm);
   font-weight: 500;
   color: var(--text-secondary);
@@ -186,14 +206,22 @@
   background: var(--bg-hover);
   color: var(--text-primary);
   border-color: var(--border-strong);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 @media (max-width: 768px) {
   .metricsGrid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .greetingName {
-    font-size: var(--text-xl);
+    font-size: var(--text-2xl);
+  }
+}
+
+@media (max-width: 480px) {
+  .metricsGrid {
+    grid-template-columns: 1fr;
   }
 }

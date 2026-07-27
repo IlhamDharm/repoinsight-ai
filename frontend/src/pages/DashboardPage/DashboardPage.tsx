@@ -51,6 +51,8 @@ export function DashboardPage() {
   }
 
   const displayName = user?.email?.split("@")[0] || "User";
+  const completedCount = stats?.recent_analyses?.filter((a) => a.status === "COMPLETED").length ?? 0;
+  const runningCount = stats?.recent_analyses?.filter((a) => a.status === "RUNNING" || a.status === "PENDING").length ?? 0;
 
   return (
     <div className={styles.page}>
@@ -61,18 +63,24 @@ export function DashboardPage() {
 
       <div className={styles.metricsGrid}>
         <div className={styles.metricCard}>
+          <div className={`${styles.metricIcon} ${styles.metricIconRepos}`}>📦</div>
           <div className={styles.metricValue}>{stats?.repository_count ?? 0}</div>
           <div className={styles.metricLabel}>Repositories</div>
         </div>
         <div className={styles.metricCard}>
+          <div className={`${styles.metricIcon} ${styles.metricIconAnalyses}`}>📊</div>
           <div className={styles.metricValue}>{stats?.analysis_count ?? 0}</div>
-          <div className={styles.metricLabel}>Analisis Selesai</div>
+          <div className={styles.metricLabel}>Total Analisis</div>
         </div>
         <div className={styles.metricCard}>
-          <div className={styles.metricValue}>
-            {stats?.recent_analyses?.filter((a) => a.status === "RUNNING").length ?? 0}
-          </div>
-          <div className={styles.metricLabel}>Sedang Berjalan</div>
+          <div className={`${styles.metricIcon} ${styles.metricIconCompleted}`}>✅</div>
+          <div className={styles.metricValue}>{completedCount}</div>
+          <div className={styles.metricLabel}>Selesai</div>
+        </div>
+        <div className={styles.metricCard}>
+          <div className={`${styles.metricIcon} ${styles.metricIconRunning}`}>⏳</div>
+          <div className={styles.metricValue}>{runningCount}</div>
+          <div className={styles.metricLabel}>Berjalan</div>
         </div>
       </div>
 
@@ -88,7 +96,7 @@ export function DashboardPage() {
 
         {!stats || stats.recent_analyses.length === 0 ? (
           <div className={styles.activityList}>
-            <div style={{ padding: "var(--space-8)", textAlign: "center" }}>
+            <div style={{ padding: "var(--space-12)", textAlign: "center" }}>
               <p style={{ color: "var(--text-muted)", fontSize: "var(--text-sm)", marginBottom: "var(--space-4)" }}>
                 Belum ada aktivitas analisis.
               </p>

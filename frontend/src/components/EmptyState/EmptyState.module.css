@@ -1,12 +1,12 @@
 .container {
   text-align: center;
   padding: var(--space-12) var(--space-4);
+  animation: fadeIn 0.3s ease-out;
 }
 
 .icon {
-  font-size: var(--text-3xl);
+  font-size: 3rem;
   margin-bottom: var(--space-4);
-  opacity: 0.6;
 }
 
 .title {

@@ -1,32 +1,21 @@
 .layout {
-  display: flex;
   min-height: 100vh;
-  background: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
 }
 
 .main {
   flex: 1;
-  margin-left: var(--sidebar-width);
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
 }
 
 .content {
-  flex: 1;
-  padding: var(--space-6);
   max-width: var(--content-max);
-  width: 100%;
   margin: 0 auto;
+  padding: var(--space-8) var(--space-6);
 }
 
 @media (max-width: 768px) {
-  .main {
-    margin-left: 0;
-    padding-bottom: var(--space-16);
-  }
-
   .content {
-    padding: var(--space-4);
+    padding: var(--space-6) var(--space-4);
   }
 }
