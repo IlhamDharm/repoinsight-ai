@@ -34,6 +34,20 @@ class RepositoryResponse(BaseModel):
     updated_at: datetime
 
 
+class RepositoryListItem(BaseModel):
+    """Schema untuk item dalam daftar repository."""
+
+    id: int
+    github_repo_id: int
+    name: str
+    full_name: str
+    url: str
+    default_branch: str
+    visibility: str
+    created_at: datetime
+    updated_at: datetime
+
+
 class ScannedFileResponse(BaseModel):
     """Schema untuk metadata file yang telah di-scan."""
 

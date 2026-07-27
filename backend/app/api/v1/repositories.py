@@ -13,7 +13,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db_session
-from app.core.dependencies import get_current_user, get_github_client, get_request_id_dependency
+from app.core.dependencies import get_current_user, get_github_client, get_request_id_dependency, verify_repository_owner
 from app.core.exceptions import ForbiddenError, NotFoundError
 from app.core.response import build_success_payload
 from app.db.models import User
@@ -21,6 +21,7 @@ from app.integrations.github.client import GitHubClient
 from app.schemas.analysis import AnalysisJobResponse
 from app.schemas.repository import (
     RegisterRepositoryRequest,
+    RepositoryListItem,
     RepositoryResponse,
     RepositoryScanResponse,
 )
@@ -34,15 +35,63 @@ from app.repositories.repository import RepositoryRepository
 router = APIRouter()
 
 
+@router.get("", status_code=200)
+async def list_user_repositories(
+    request: Request,
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(20, ge=1, le=100, description="Items per page"),
+    request_id: str = Depends(get_request_id_dependency),
+    session: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_user),
+) -> JSONResponse:
+    """Ambil daftar repository milik user yang sedang login."""
+    from math import ceil
+
+    repo_repo = RepositoryRepository(session)
+
+    total_items = await repo_repo.count_by_owner(current_user.id)
+    total_pages = ceil(total_items / page_size) if total_items > 0 else 0
+
+    offset = (page - 1) * page_size
+    repositories = await repo_repo.list_by_owner(
+        owner_id=current_user.id,
+        offset=offset,
+        limit=page_size,
+    )
+
+    items = [
+        RepositoryListItem(
+            id=r.id,
+            github_repo_id=r.github_repo_id,
+            name=r.name,
+            full_name=r.full_name,
+            url=r.url,
+            default_branch=r.default_branch,
+            visibility=r.visibility,
+            created_at=r.created_at,
+            updated_at=r.updated_at,
+        ).model_dump(mode="json")
+        for r in repositories
+    ]
+
+    return JSONResponse(
+        status_code=200,
+        content=build_success_payload(
+            items,
+            request_id=request_id,
+            meta_extra={
+                "page": page,
+                "page_size": page_size,
+                "total": total_items,
+                "total_pages": total_pages,
+            },
+        ),
+    )
+
+
 async def _get_owned_repository(session: AsyncSession, repository_id: int, user: User):
     """Ambil repository dan pastikan milik user yang sedang login."""
-    repo_repo = RepositoryRepository(session)
-    repository = await repo_repo.get_by_id(repository_id)
-    if repository is None:
-        raise NotFoundError(f"Repository dengan ID {repository_id} tidak ditemukan")
-    if repository.owner_id != user.id:
-        raise ForbiddenError("Anda tidak memiliki akses ke repository ini")
-    return repository
+    return await verify_repository_owner(repository_id, user, session)
 
 
 @router.post("", status_code=201)

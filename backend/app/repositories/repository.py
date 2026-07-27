@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import Repository
@@ -18,3 +18,19 @@ class RepositoryRepository(BaseRepository[Repository]):
         statement = select(Repository).where(Repository.full_name == full_name)
         result = await self._session.execute(statement)
         return result.scalars().first()
+
+    async def list_by_owner(self, owner_id: int, offset: int = 0, limit: int = 100) -> list[Repository]:
+        statement = (
+            select(Repository)
+            .where(Repository.owner_id == owner_id)
+            .order_by(Repository.created_at.desc())
+            .offset(offset)
+            .limit(limit)
+        )
+        result = await self._session.execute(statement)
+        return list(result.scalars().all())
+
+    async def count_by_owner(self, owner_id: int) -> int:
+        statement = select(func.count(Repository.id)).where(Repository.owner_id == owner_id)
+        result = await self._session.execute(statement)
+        return result.scalar() or 0

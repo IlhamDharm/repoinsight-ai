@@ -66,3 +66,55 @@ async def get_current_user(
         from app.core.exceptions import AuthenticationError
         raise AuthenticationError("Akun tidak aktif")
     return user
+
+
+async def verify_repository_owner(
+    repository_id: int,
+    current_user: User,
+    session: AsyncSession,
+):
+    """Verifikasi bahwa repository dimiliki oleh current_user.
+
+    Raises:
+        NotFoundError: Repository tidak ditemukan.
+        ForbiddenError: User bukan pemilik repository.
+    """
+    from app.core.exceptions import ForbiddenError, NotFoundError
+    from app.repositories.repository import RepositoryRepository
+
+    repo_repo = RepositoryRepository(session)
+    repository = await repo_repo.get_by_id(repository_id)
+    if repository is None:
+        raise NotFoundError(f"Repository dengan ID {repository_id} tidak ditemukan")
+    if repository.owner_id != current_user.id:
+        raise ForbiddenError("Anda tidak memiliki akses ke repository ini")
+    return repository
+
+
+async def verify_analysis_owner(
+    analysis_id: int,
+    current_user: User,
+    session: AsyncSession,
+):
+    """Verifikasi bahwa analysis dimiliki oleh current_user melalui ownership repository.
+
+    Raises:
+        NotFoundError: Analysis atau repository tidak ditemukan.
+        ForbiddenError: User bukan pemilik repository terkait.
+    """
+    from app.core.exceptions import ForbiddenError, NotFoundError
+    from app.repositories.analysis import AnalysisRepository
+    from app.repositories.repository import RepositoryRepository
+
+    analysis_repo = AnalysisRepository(session)
+    analysis = await analysis_repo.get_by_id(analysis_id)
+    if analysis is None:
+        raise NotFoundError(f"Analysis dengan ID {analysis_id} tidak ditemukan")
+
+    repo_repo = RepositoryRepository(session)
+    repository = await repo_repo.get_by_id(analysis.repository_id)
+    if repository is None:
+        raise NotFoundError("Repository tidak ditemukan")
+    if repository.owner_id != current_user.id:
+        raise ForbiddenError("Anda tidak memiliki akses ke analysis ini")
+    return analysis

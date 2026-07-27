@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db_session
-from app.core.dependencies import get_current_user, get_request_id_dependency
+from app.core.dependencies import get_current_user, get_request_id_dependency, verify_analysis_owner
 from app.core.exceptions import ForbiddenError, NotFoundError
 from app.core.response import build_success_payload
 from app.db.models import AnalysisStatus, User
@@ -25,16 +25,7 @@ router = APIRouter()
 
 async def _assert_analysis_ownership(session: AsyncSession, analysis_id: int, user: User):
     """Pastikan analysis milik user yang sedang login melalui ownership repository."""
-    job_service = AnalysisJobService(session)
-    analysis = await job_service.get_analysis_by_id(analysis_id)
-
-    repo_repo = RepositoryRepository(session)
-    repository = await repo_repo.get_by_id(analysis.repository_id)
-    if repository is None:
-        raise NotFoundError("Repository tidak ditemukan")
-    if repository.owner_id != user.id:
-        raise ForbiddenError("Anda tidak memiliki akses ke analysis ini")
-    return analysis
+    return await verify_analysis_owner(analysis_id, user, session)
 
 
 @router.get("/{analysis_id}", status_code=200)
