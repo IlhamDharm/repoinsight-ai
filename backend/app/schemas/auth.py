@@ -1,6 +1,8 @@
 """Pydantic schemas untuk Authentication API."""
 from __future__ import annotations
 
+import re
+
 from pydantic import BaseModel, EmailStr, field_validator
 
 
@@ -15,6 +17,16 @@ class RegisterRequest(BaseModel):
     def password_must_be_strong(cls, v: str) -> str:
         if len(v) < 8:
             raise ValueError("Password harus minimal 8 karakter")
+        if len(v) > 128:
+            raise ValueError("Password maksimal 128 karakter")
+        if not re.search(r"[A-Z]", v):
+            raise ValueError("Password harus mengandung minimal 1 huruf besar")
+        if not re.search(r"[a-z]", v):
+            raise ValueError("Password harus mengandung minimal 1 huruf kecil")
+        if not re.search(r"[0-9]", v):
+            raise ValueError("Password harus mengandung minimal 1 angka")
+        if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", v):
+            raise ValueError("Password harus mengandung minimal 1 karakter spesial")
         return v
 
 

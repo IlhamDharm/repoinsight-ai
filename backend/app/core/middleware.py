@@ -1,4 +1,5 @@
 import logging
+import re
 import time
 import uuid
 from contextvars import ContextVar
@@ -11,10 +12,17 @@ from starlette.responses import Response
 REQUEST_ID_CONTEXT: Final[ContextVar[str]] = ContextVar("request_id", default="")
 logger = logging.getLogger("repoinsight.api")
 
+# Only allow safe characters in request ID (alphanumeric, hyphens, underscores)
+_REQUEST_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]{1,128}$")
+
 
 class RequestIDMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next) -> Response:
-        request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+        raw_id = request.headers.get("X-Request-ID", "")
+        if _REQUEST_ID_PATTERN.match(raw_id):
+            request_id = raw_id
+        else:
+            request_id = str(uuid.uuid4())
         request.state.request_id = request_id
         token = REQUEST_ID_CONTEXT.set(request_id)
         try:

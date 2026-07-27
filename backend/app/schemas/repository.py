@@ -1,6 +1,7 @@
 """Pydantic schemas untuk Repository API."""
 from __future__ import annotations
 
+import re
 from datetime import datetime
 
 from pydantic import BaseModel, field_validator
@@ -17,6 +18,18 @@ class RegisterRepositoryRequest(BaseModel):
         stripped = v.strip()
         if not stripped:
             raise ValueError("URL tidak boleh kosong")
+        return stripped
+
+    @field_validator("url")
+    @classmethod
+    def url_must_be_github(cls, v: str) -> str:
+        stripped = v.strip()
+        if not re.match(r"^https?://github\.com/", stripped, re.IGNORECASE):
+            raise ValueError(
+                "URL harus berformat https://github.com/owner/repo"
+            )
+        if len(stripped) > 2048:
+            raise ValueError("URL terlalu panjang (maksimal 2048 karakter)")
         return stripped
 
 
