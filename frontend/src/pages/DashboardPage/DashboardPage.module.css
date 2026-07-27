@@ -31,10 +31,8 @@
 }
 
 .metricCard {
-  background: var(--glass-bg-strong);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-border);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
   border-radius: var(--radius-xl);
   padding: var(--space-6);
   transition: all var(--transition-base);
@@ -43,8 +41,8 @@
 
 .metricCard:hover {
   transform: translateY(-3px);
-  box-shadow: var(--shadow-lg);
-  border-color: var(--accent-muted);
+  box-shadow: var(--shadow-lg), var(--shadow-glow);
+  border-color: rgba(59, 130, 246, 0.2);
 }
 
 .metricIcon {
@@ -59,19 +57,19 @@
 }
 
 .metricIconRepos {
-  background: rgba(99, 102, 241, 0.1);
+  background: rgba(59, 130, 246, 0.12);
 }
 
 .metricIconAnalyses {
-  background: rgba(16, 185, 129, 0.1);
+  background: rgba(34, 197, 94, 0.12);
 }
 
 .metricIconCompleted {
-  background: rgba(59, 130, 246, 0.1);
+  background: rgba(96, 165, 250, 0.12);
 }
 
 .metricIconRunning {
-  background: rgba(245, 158, 11, 0.1);
+  background: rgba(245, 158, 11, 0.12);
 }
 
 .metricValue {
@@ -110,21 +108,19 @@
 
 .sectionLink {
   font-size: var(--text-sm);
-  color: var(--accent);
+  color: var(--accent-light);
   text-decoration: none;
   font-weight: 500;
   transition: color var(--transition-fast);
 }
 
 .sectionLink:hover {
-  color: var(--accent-hover);
+  color: var(--accent);
 }
 
 .activityList {
-  background: var(--glass-bg-strong);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-border);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
   border-radius: var(--radius-xl);
   overflow: hidden;
   box-shadow: var(--shadow-sm);
@@ -192,7 +188,7 @@
 
 .emptyButton {
   padding: var(--space-2) var(--space-4);
-  background: var(--bg-secondary);
+  background: var(--bg-tertiary);
   border: 1px solid var(--border-primary);
   border-radius: var(--radius-lg);
   font-size: var(--text-sm);

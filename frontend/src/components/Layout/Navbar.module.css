@@ -70,7 +70,7 @@
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
   font-weight: 500;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   text-decoration: none;
   transition: all var(--transition-fast);
   position: relative;
@@ -82,12 +82,12 @@
 }
 
 .active {
-  color: var(--accent);
+  color: var(--accent-light);
   background: var(--accent-muted);
 }
 
 .active:hover {
-  color: var(--accent-hover);
+  color: var(--accent);
   background: var(--accent-strong);
 }
 
@@ -116,7 +116,7 @@
 
 .email {
   font-size: var(--text-sm);
-  color: var(--text-secondary);
+  color: var(--text-muted);
   max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -130,7 +130,7 @@
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
   font-weight: 500;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   transition: all var(--transition-fast);
 }
 

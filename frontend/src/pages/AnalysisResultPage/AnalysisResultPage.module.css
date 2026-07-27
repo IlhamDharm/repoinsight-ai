@@ -3,6 +3,22 @@
   animation: fadeIn 0.3s ease-out;
 }
 
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  text-decoration: none;
+  margin-bottom: var(--space-4);
+  transition: color var(--transition-fast);
+  font-weight: 500;
+}
+
+.backLink:hover {
+  color: var(--accent-light);
+}
+
 .breadcrumb {
   display: flex;
   align-items: center;
@@ -20,7 +36,7 @@
 }
 
 .breadcrumbLink:hover {
-  color: var(--accent);
+  color: var(--accent-light);
 }
 
 .breadcrumbSep {
@@ -30,22 +46,6 @@
 .breadcrumbCurrent {
   color: var(--text-primary);
   font-weight: 500;
-}
-
-.backLink {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  font-size: var(--text-sm);
-  color: var(--text-muted);
-  text-decoration: none;
-  margin-bottom: var(--space-4);
-  transition: color var(--transition-fast);
-  font-weight: 500;
-}
-
-.backLink:hover {
-  color: var(--accent);
 }
 
 .header {
@@ -82,10 +82,10 @@
   gap: var(--space-3);
   padding: var(--space-4) var(--space-5);
   background: var(--info-muted);
-  border: 1px solid rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.15);
   border-radius: var(--radius-lg);
   font-size: var(--text-sm);
-  color: var(--accent);
+  color: var(--accent-light);
   margin-bottom: var(--space-8);
   box-shadow: var(--shadow-glow);
 }
@@ -152,10 +152,8 @@
 }
 
 .summaryItem {
-  background: var(--glass-bg-strong);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-border);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
   border-radius: var(--radius-xl);
   padding: var(--space-5);
   text-align: center;
@@ -165,7 +163,8 @@
 
 .summaryItem:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-md), var(--shadow-glow);
+  border-color: rgba(59, 130, 246, 0.15);
 }
 
 .summaryValue {
@@ -188,10 +187,8 @@
 }
 
 .findingCard {
-  background: var(--glass-bg-strong);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-border);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
   border-radius: var(--radius-xl);
   padding: var(--space-5);
   box-shadow: var(--shadow-sm);
@@ -200,7 +197,8 @@
 
 .findingCard:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-md), var(--shadow-glow);
+  border-color: rgba(59, 130, 246, 0.15);
 }
 
 .findingHeader {
@@ -231,7 +229,7 @@
 
 .findingSeverity.medium {
   background: var(--info-muted);
-  color: var(--accent);
+  color: var(--accent-light);
 }
 
 .findingSeverity.low {
@@ -266,7 +264,7 @@
 
 .findingRecommendation {
   font-size: var(--text-sm);
-  color: var(--accent);
+  color: var(--accent-light);
   background: var(--accent-muted);
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-md);
@@ -285,17 +283,15 @@
   font-size: var(--text-sm);
   color: var(--text-secondary);
   padding: var(--space-4);
-  background: var(--glass-bg-strong);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-border);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
   border-radius: var(--radius-xl);
   line-height: 1.6;
   box-shadow: var(--shadow-xs);
 }
 
 .recommendationBullet {
-  color: var(--accent);
+  color: var(--accent-light);
   font-weight: 700;
   flex-shrink: 0;
 }

@@ -35,7 +35,7 @@
 .registerInput {
   flex: 1;
   padding: var(--space-3) var(--space-4);
-  background: var(--bg-secondary);
+  background: var(--bg-tertiary);
   border: 1px solid var(--border-primary);
   border-radius: var(--radius-lg);
   font-size: var(--text-sm);
@@ -102,10 +102,8 @@
 }
 
 .card {
-  background: var(--glass-bg-strong);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-border);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
   border-radius: var(--radius-xl);
   padding: var(--space-6);
   text-decoration: none;
@@ -116,8 +114,8 @@
 
 .card:hover {
   transform: translateY(-3px);
-  box-shadow: var(--shadow-lg);
-  border-color: var(--accent-muted);
+  box-shadow: var(--shadow-lg), var(--shadow-glow);
+  border-color: rgba(59, 130, 246, 0.2);
 }
 
 .cardHeader {
@@ -169,7 +167,7 @@
 }
 
 .viewDetail {
-  color: var(--accent);
+  color: var(--accent-light);
   font-weight: 500;
 }
 

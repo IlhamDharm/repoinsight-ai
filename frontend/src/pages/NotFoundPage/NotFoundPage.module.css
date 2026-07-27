@@ -10,18 +10,6 @@
   overflow: hidden;
 }
 
-.page::before {
-  content: "";
-  position: absolute;
-  top: -200px;
-  right: -200px;
-  width: 500px;
-  height: 500px;
-  background: radial-gradient(circle, rgba(99, 102, 241, 0.06) 0%, transparent 70%);
-  border-radius: 50%;
-  pointer-events: none;
-}
-
 .code {
   font-size: 6rem;
   font-weight: 800;
