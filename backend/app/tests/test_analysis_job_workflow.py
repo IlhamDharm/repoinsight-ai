@@ -18,8 +18,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
-from app.core.dependencies import get_github_client
-from app.db.models import AnalysisStatus
+from app.core.database import get_session_factory
+from app.core.dependencies import get_current_user, get_github_client
+from app.core.security import hash_password
+from app.db.models import AnalysisStatus, User
 from app.integrations.github.client import (
     GitHubClient,
     GitHubContentData,
@@ -63,6 +65,26 @@ def _make_mock_github_data(
     )
 
 
+async def _create_test_user() -> User:
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        user = User(
+            email=f"job_{uuid.uuid4().hex[:8]}@example.com",
+            password_hash=hash_password("TestPassword123!"),
+            is_active=True,
+        )
+        session.add(user)
+        await session.commit()
+        await session.refresh(user)
+        return user
+
+
+def _setup_auth(user: User):
+    async def _get_user() -> User:
+        return user
+    app.dependency_overrides[get_current_user] = _get_user
+
+
 def _register_repo(client: TestClient, mock_github: GitHubClient) -> int:
     """Daftarkan repository dan kembalikan database ID-nya."""
     repo_data = mock_github.get_repository.return_value
@@ -102,10 +124,7 @@ def _setup_mock_github_for_analysis(mock_github: AsyncMock) -> None:
 # ============================================================================
 
 class TestAnalysisJobLifecycle:
-    """Unit tests untuk AnalysisJobService status transitions.
-
-    Menggunakan in-memory async session dengan database nyata.
-    """
+    """Unit tests untuk AnalysisJobService status transitions."""
 
     def _run(self, coro):
         """Helper untuk menjalankan coroutine di test sync."""
@@ -113,6 +132,8 @@ class TestAnalysisJobLifecycle:
 
     def test_create_pending_job_via_api(self):
         """POST /analyze membuat job PENDING dan mengembalikan 202."""
+        user = self._run(_create_test_user())
+
         client = TestClient(app)
         mock_github = AsyncMock(spec=GitHubClient)
         repo_data = _make_mock_github_data()
@@ -120,6 +141,7 @@ class TestAnalysisJobLifecycle:
         _setup_mock_github_for_analysis(mock_github)
 
         app.dependency_overrides[get_github_client] = lambda: mock_github
+        _setup_auth(user)
         try:
             db_id = _register_repo(client, mock_github)
             resp = client.post(f"/api/v1/repositories/{db_id}/analyze")
@@ -133,6 +155,8 @@ class TestAnalysisJobLifecycle:
 
     def test_duplicate_active_job_returns_409(self):
         """Membuat analysis job baru saat ada yang PENDING/RUNNING harus mengembalikan 409."""
+        user = self._run(_create_test_user())
+
         client = TestClient(app)
         mock_github = AsyncMock(spec=GitHubClient)
         repo_data = _make_mock_github_data()
@@ -140,20 +164,18 @@ class TestAnalysisJobLifecycle:
         _setup_mock_github_for_analysis(mock_github)
 
         app.dependency_overrides[get_github_client] = lambda: mock_github
+        _setup_auth(user)
         try:
             db_id = _register_repo(client, mock_github)
 
-            # Patch background task agar tidak berjalan (simulate job masih PENDING)
             with patch(
                 "app.api.v1.repositories.run_background_analysis",
                 new_callable=lambda: lambda *a, **kw: None,
             ):
-                # Perlu patch BackgroundTasks.add_task agar background tidak jalan
                 with patch("fastapi.BackgroundTasks.add_task"):
                     first = client.post(f"/api/v1/repositories/{db_id}/analyze")
                     assert first.status_code == 202
 
-                    # Coba buat job kedua — harus 409
                     second = client.post(f"/api/v1/repositories/{db_id}/analyze")
                     assert second.status_code == 409
                     payload = second.json()
@@ -164,6 +186,8 @@ class TestAnalysisJobLifecycle:
 
     def test_invalid_status_transition_raises_error(self):
         """Status COMPLETED tidak bisa ditransisikan ke RUNNING."""
+        user = self._run(_create_test_user())
+
         client = TestClient(app)
         mock_github = AsyncMock(spec=GitHubClient)
         repo_data = _make_mock_github_data()
@@ -171,20 +195,18 @@ class TestAnalysisJobLifecycle:
         _setup_mock_github_for_analysis(mock_github)
 
         app.dependency_overrides[get_github_client] = lambda: mock_github
+        _setup_auth(user)
         try:
             db_id = _register_repo(client, mock_github)
 
-            # Jalankan analysis sampai COMPLETED
             first = client.post(f"/api/v1/repositories/{db_id}/analyze")
             assert first.status_code == 202
             analysis_id = first.json()["data"]["analysis_id"]
 
-            # Verify COMPLETED via GET
             status_resp = client.get(f"/api/v1/analyses/{analysis_id}")
             result = status_resp.json()["data"]
             assert result["status"] == "COMPLETED"
 
-            # Coba analysis kedua — seharusnya boleh karena COMPLETED sudah tidak "active"
             second = client.post(f"/api/v1/repositories/{db_id}/analyze")
             assert second.status_code == 202
         finally:
@@ -196,12 +218,9 @@ class TestAnalysisJobLifecycle:
 # ============================================================================
 
 class TestBackgroundProcessing:
-    """Test bahwa background task mengubah status dengan benar."""
-
     def test_background_task_transitions_pending_to_completed(self):
-        """TestClient menjalankan BackgroundTasks synchronously.
-        Setelah POST, GET harus mengembalikan COMPLETED dengan hasil analisis.
-        """
+        user = asyncio.get_event_loop().run_until_complete(_create_test_user())
+
         client = TestClient(app)
         mock_github = AsyncMock(spec=GitHubClient)
         repo_data = _make_mock_github_data()
@@ -209,13 +228,13 @@ class TestBackgroundProcessing:
         _setup_mock_github_for_analysis(mock_github)
 
         app.dependency_overrides[get_github_client] = lambda: mock_github
+        _setup_auth(user)
         try:
             db_id = _register_repo(client, mock_github)
             analyze_resp = client.post(f"/api/v1/repositories/{db_id}/analyze")
             assert analyze_resp.status_code == 202
             analysis_id = analyze_resp.json()["data"]["analysis_id"]
 
-            # Background task sudah selesai — verify status
             status_resp = client.get(f"/api/v1/analyses/{analysis_id}")
             assert status_resp.status_code == 200
             result = status_resp.json()["data"]
@@ -231,7 +250,8 @@ class TestBackgroundProcessing:
             app.dependency_overrides.clear()
 
     def test_background_task_saves_analysis_results(self):
-        """Hasil analisis (scores, summary, findings) tersimpan dengan benar."""
+        user = asyncio.get_event_loop().run_until_complete(_create_test_user())
+
         client = TestClient(app)
         mock_github = AsyncMock(spec=GitHubClient)
         repo_data = _make_mock_github_data()
@@ -239,6 +259,7 @@ class TestBackgroundProcessing:
         _setup_mock_github_for_analysis(mock_github)
 
         app.dependency_overrides[get_github_client] = lambda: mock_github
+        _setup_auth(user)
         try:
             db_id = _register_repo(client, mock_github)
             resp = client.post(f"/api/v1/repositories/{db_id}/analyze")
@@ -261,26 +282,23 @@ class TestBackgroundProcessing:
 # ============================================================================
 
 class TestFailureHandling:
-    """Test bahwa kegagalan background task ditangani dengan benar."""
-
     def test_scanner_failure_marks_job_as_failed(self):
-        """Jika scanner gagal, job harus berstatus FAILED."""
+        user = asyncio.get_event_loop().run_until_complete(_create_test_user())
+
         client = TestClient(app)
         mock_github = AsyncMock(spec=GitHubClient)
         repo_data = _make_mock_github_data()
         mock_github.get_repository.return_value = repo_data
-
-        # Scanner gagal — get_tree throw exception
         mock_github.get_tree.side_effect = RuntimeError("GitHub API unavailable")
 
         app.dependency_overrides[get_github_client] = lambda: mock_github
+        _setup_auth(user)
         try:
             db_id = _register_repo(client, mock_github)
             resp = client.post(f"/api/v1/repositories/{db_id}/analyze")
             assert resp.status_code == 202
             analysis_id = resp.json()["data"]["analysis_id"]
 
-            # Verify status FAILED setelah background task selesai
             status_resp = client.get(f"/api/v1/analyses/{analysis_id}")
             assert status_resp.status_code == 200
             result = status_resp.json()["data"]
@@ -289,7 +307,8 @@ class TestFailureHandling:
             app.dependency_overrides.clear()
 
     def test_failed_job_has_safe_error_payload(self):
-        """Response GET untuk job FAILED mengembalikan safe error — bukan stack trace."""
+        user = asyncio.get_event_loop().run_until_complete(_create_test_user())
+
         client = TestClient(app)
         mock_github = AsyncMock(spec=GitHubClient)
         repo_data = _make_mock_github_data()
@@ -297,6 +316,7 @@ class TestFailureHandling:
         mock_github.get_tree.side_effect = RuntimeError("Secret internal error details")
 
         app.dependency_overrides[get_github_client] = lambda: mock_github
+        _setup_auth(user)
         try:
             db_id = _register_repo(client, mock_github)
             resp = client.post(f"/api/v1/repositories/{db_id}/analyze")
@@ -306,27 +326,26 @@ class TestFailureHandling:
             result = status_resp.json()["data"]
             assert result["status"] == "FAILED"
 
-            # Error payload aman — ada 'error.code' dan 'error.message'
             assert result["error"] is not None
             assert result["error"]["code"] == "ANALYSIS_FAILED"
             assert "message" in result["error"]
-            # Stack trace TIDAK boleh ada di response
             assert "Traceback" not in str(result)
             assert "Secret internal error details" not in str(result["error"])
         finally:
             app.dependency_overrides.clear()
 
     def test_failed_job_error_message_stored_safely(self):
-        """Error message yang tersimpan di DB harus di-truncate dan tidak leak stack trace."""
+        user = asyncio.get_event_loop().run_until_complete(_create_test_user())
+
         client = TestClient(app)
         mock_github = AsyncMock(spec=GitHubClient)
         repo_data = _make_mock_github_data()
         mock_github.get_repository.return_value = repo_data
-        # Pesan error sangat panjang
         long_error = "X" * 2000
         mock_github.get_tree.side_effect = RuntimeError(long_error)
 
         app.dependency_overrides[get_github_client] = lambda: mock_github
+        _setup_auth(user)
         try:
             db_id = _register_repo(client, mock_github)
             resp = client.post(f"/api/v1/repositories/{db_id}/analyze")
@@ -344,10 +363,9 @@ class TestFailureHandling:
 # ============================================================================
 
 class TestAnalysisAPIEndpoints:
-    """Test API endpoint behavior."""
-
     def test_post_analyze_returns_202(self):
-        """POST /analyze mengembalikan HTTP 202."""
+        user = asyncio.get_event_loop().run_until_complete(_create_test_user())
+
         client = TestClient(app)
         mock_github = AsyncMock(spec=GitHubClient)
         repo_data = _make_mock_github_data()
@@ -355,6 +373,7 @@ class TestAnalysisAPIEndpoints:
         _setup_mock_github_for_analysis(mock_github)
 
         app.dependency_overrides[get_github_client] = lambda: mock_github
+        _setup_auth(user)
         try:
             db_id = _register_repo(client, mock_github)
             resp = client.post(f"/api/v1/repositories/{db_id}/analyze")
@@ -370,7 +389,8 @@ class TestAnalysisAPIEndpoints:
             app.dependency_overrides.clear()
 
     def test_get_analysis_pending_status(self):
-        """GET /api/v1/analyses/{id} mengembalikan 200 dengan status info."""
+        user = asyncio.get_event_loop().run_until_complete(_create_test_user())
+
         client = TestClient(app)
         mock_github = AsyncMock(spec=GitHubClient)
         repo_data = _make_mock_github_data()
@@ -378,6 +398,7 @@ class TestAnalysisAPIEndpoints:
         _setup_mock_github_for_analysis(mock_github)
 
         app.dependency_overrides[get_github_client] = lambda: mock_github
+        _setup_auth(user)
         try:
             db_id = _register_repo(client, mock_github)
             post_resp = client.post(f"/api/v1/repositories/{db_id}/analyze")
@@ -395,7 +416,8 @@ class TestAnalysisAPIEndpoints:
             app.dependency_overrides.clear()
 
     def test_get_analysis_completed_has_full_data(self):
-        """GET mengembalikan data analisis lengkap jika status COMPLETED."""
+        user = asyncio.get_event_loop().run_until_complete(_create_test_user())
+
         client = TestClient(app)
         mock_github = AsyncMock(spec=GitHubClient)
         repo_data = _make_mock_github_data()
@@ -403,6 +425,7 @@ class TestAnalysisAPIEndpoints:
         _setup_mock_github_for_analysis(mock_github)
 
         app.dependency_overrides[get_github_client] = lambda: mock_github
+        _setup_auth(user)
         try:
             db_id = _register_repo(client, mock_github)
             post_resp = client.post(f"/api/v1/repositories/{db_id}/analyze")
@@ -411,14 +434,14 @@ class TestAnalysisAPIEndpoints:
             get_resp = client.get(f"/api/v1/analyses/{analysis_id}")
             result = get_resp.json()["data"]
             assert result["status"] == "COMPLETED"
-            # Semua field hasil harus ada
             for field in ("summary", "scores", "findings", "recommendations"):
                 assert field in result
         finally:
             app.dependency_overrides.clear()
 
     def test_get_analysis_failed_has_safe_error(self):
-        """GET mengembalikan safe error payload untuk status FAILED."""
+        user = asyncio.get_event_loop().run_until_complete(_create_test_user())
+
         client = TestClient(app)
         mock_github = AsyncMock(spec=GitHubClient)
         repo_data = _make_mock_github_data()
@@ -426,6 +449,7 @@ class TestAnalysisAPIEndpoints:
         mock_github.get_tree.side_effect = RuntimeError("Internal failure")
 
         app.dependency_overrides[get_github_client] = lambda: mock_github
+        _setup_auth(user)
         try:
             db_id = _register_repo(client, mock_github)
             post_resp = client.post(f"/api/v1/repositories/{db_id}/analyze")
@@ -439,10 +463,12 @@ class TestAnalysisAPIEndpoints:
             app.dependency_overrides.clear()
 
     def test_post_analyze_repository_not_found_returns_404(self):
-        """POST /analyze dengan repository_id yang tidak ada mengembalikan 404."""
+        user = asyncio.get_event_loop().run_until_complete(_create_test_user())
+
         client = TestClient(app)
         mock_github = AsyncMock(spec=GitHubClient)
         app.dependency_overrides[get_github_client] = lambda: mock_github
+        _setup_auth(user)
         try:
             resp = client.post("/api/v1/repositories/999999/analyze")
             assert resp.status_code == 404
@@ -453,13 +479,18 @@ class TestAnalysisAPIEndpoints:
             app.dependency_overrides.clear()
 
     def test_get_analysis_not_found_returns_404(self):
-        """GET /api/v1/analyses/{id} dengan ID tidak ada mengembalikan 404."""
+        user = asyncio.get_event_loop().run_until_complete(_create_test_user())
+
         client = TestClient(app)
-        resp = client.get("/api/v1/analyses/999999")
-        assert resp.status_code == 404
-        payload = resp.json()
-        assert payload["success"] is False
-        assert payload["error"]["code"] == "not_found"
+        _setup_auth(user)
+        try:
+            resp = client.get("/api/v1/analyses/999999")
+            assert resp.status_code == 404
+            payload = resp.json()
+            assert payload["success"] is False
+            assert payload["error"]["code"] == "not_found"
+        finally:
+            app.dependency_overrides.clear()
 
 
 # ============================================================================
@@ -467,10 +498,9 @@ class TestAnalysisAPIEndpoints:
 # ============================================================================
 
 class TestDuplicateJobHandling:
-    """Test behavior saat ada duplicate analysis job."""
-
     def test_completed_analysis_allows_new_job(self):
-        """Setelah analysis COMPLETED, repository yang sama boleh dianalisis ulang."""
+        user = asyncio.get_event_loop().run_until_complete(_create_test_user())
+
         client = TestClient(app)
         mock_github = AsyncMock(spec=GitHubClient)
         repo_data = _make_mock_github_data()
@@ -478,45 +508,42 @@ class TestDuplicateJobHandling:
         _setup_mock_github_for_analysis(mock_github)
 
         app.dependency_overrides[get_github_client] = lambda: mock_github
+        _setup_auth(user)
         try:
             db_id = _register_repo(client, mock_github)
 
-            # Jalankan pertama — selesai COMPLETED
             first = client.post(f"/api/v1/repositories/{db_id}/analyze")
             assert first.status_code == 202
             first_analysis_id = first.json()["data"]["analysis_id"]
 
-            # Verify COMPLETED
             get_first = client.get(f"/api/v1/analyses/{first_analysis_id}")
             assert get_first.json()["data"]["status"] == "COMPLETED"
 
-            # Jalankan kedua — harus boleh (analysis baru)
             second = client.post(f"/api/v1/repositories/{db_id}/analyze")
             assert second.status_code == 202
             second_analysis_id = second.json()["data"]["analysis_id"]
 
-            # Harus analysis yang berbeda
             assert first_analysis_id != second_analysis_id
         finally:
             app.dependency_overrides.clear()
 
     def test_active_analysis_prevents_duplicate_job(self):
-        """PENDING/RUNNING analysis mencegah pembuatan job duplikat."""
+        user = asyncio.get_event_loop().run_until_complete(_create_test_user())
+
         client = TestClient(app)
         mock_github = AsyncMock(spec=GitHubClient)
         repo_data = _make_mock_github_data()
         mock_github.get_repository.return_value = repo_data
 
         app.dependency_overrides[get_github_client] = lambda: mock_github
+        _setup_auth(user)
         try:
             db_id = _register_repo(client, mock_github)
 
-            # Patch add_task agar background tidak jalan (simulate PENDING state)
             with patch("fastapi.BackgroundTasks.add_task"):
                 first = client.post(f"/api/v1/repositories/{db_id}/analyze")
                 assert first.status_code == 202
 
-                # Coba duplicate — harus 409
                 second = client.post(f"/api/v1/repositories/{db_id}/analyze")
                 assert second.status_code == 409
                 assert second.json()["error"]["code"] == "duplicate_active_analysis"

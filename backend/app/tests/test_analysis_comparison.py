@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import uuid
 from unittest.mock import AsyncMock, patch
 
@@ -7,8 +8,9 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.core.database import get_session_factory
-from app.core.dependencies import get_github_client
-from app.db.models import AnalysisStatus
+from app.core.dependencies import get_current_user, get_github_client
+from app.core.security import hash_password
+from app.db.models import AnalysisStatus, User
 from app.integrations.github.client import GitHubRepoData
 from app.main import app
 from app.repositories.analysis import AnalysisRepository
@@ -36,6 +38,26 @@ def _make_mock_github_data() -> GitHubRepoData:
     )
 
 
+async def _create_test_user() -> User:
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        user = User(
+            email=f"compare_{uuid.uuid4().hex[:8]}@example.com",
+            password_hash=hash_password("TestPassword123!"),
+            is_active=True,
+        )
+        session.add(user)
+        await session.commit()
+        await session.refresh(user)
+        return user
+
+
+def _setup_auth(user: User):
+    async def _get_user() -> User:
+        return user
+    app.dependency_overrides[get_current_user] = _get_user
+
+
 @pytest.fixture
 def mock_github() -> AsyncMock:
     with patch("app.core.dependencies.get_github_client") as mock:
@@ -48,7 +70,10 @@ def mock_github() -> AsyncMock:
 
 @pytest.fixture
 def client() -> TestClient:
-    return TestClient(app)
+    user = asyncio.get_event_loop().run_until_complete(_create_test_user())
+    _setup_auth(user)
+    yield TestClient(app)
+    app.dependency_overrides.pop(get_current_user, None)
 
 
 @pytest.mark.asyncio
@@ -56,33 +81,28 @@ async def test_compare_analyses_success(client: TestClient, mock_github: AsyncMo
     repo_data = _make_mock_github_data()
     mock_github.get_repository.return_value = repo_data
 
-    # Register Repo
     resp = client.post("/api/v1/repositories", json={"url": repo_data.html_url})
     repo_id = resp.json()["data"]["id"]
 
-    # Create analyses directly in DB
     session_factory = get_session_factory()
     async with session_factory() as session:
         analysis_repo = AnalysisRepository(session)
-        # Previous analysis
         a1 = await analysis_repo.create_analysis(repo_id)
         await analysis_repo.update_status(
             a1.id,
             AnalysisStatus.COMPLETED,
-            scores={"code_quality": 70, "architecture": 70, "maintainability": 70}, # average 70
+            scores={"code_quality": 70, "architecture": 70, "maintainability": 70},
             findings=[{"id": 1}, {"id": 2}, {"id": 3}]
         )
 
-        # Current analysis
         a2 = await analysis_repo.create_analysis(repo_id)
         await analysis_repo.update_status(
             a2.id,
             AnalysisStatus.COMPLETED,
-            scores={"code_quality": 80, "architecture": 90, "maintainability": 70}, # average 80
+            scores={"code_quality": 80, "architecture": 90, "maintainability": 70},
             findings=[{"id": 1}]
         )
 
-    # Fetch comparison
     resp = client.get(f"/api/v1/analyses/{a2.id}/compare/{a1.id}")
     assert resp.status_code == 200
     data = resp.json()
@@ -96,7 +116,7 @@ async def test_compare_analyses_success(client: TestClient, mock_github: AsyncMo
     assert comp["previous_score"] == 70
     assert comp["score_change"] == 10
     
-    assert comp["findings_change"] == -2  # 1 - 3 = -2
+    assert comp["findings_change"] == -2
     
     assert comp["category_changes"]["code_quality"] == 10
     assert comp["category_changes"]["architecture"] == 20
@@ -104,7 +124,6 @@ async def test_compare_analyses_success(client: TestClient, mock_github: AsyncMo
 
 @pytest.mark.asyncio
 async def test_compare_different_repositories(client: TestClient, mock_github: AsyncMock) -> None:
-    # Setup two repos
     repo_data1 = _make_mock_github_data()
     mock_github.get_repository.return_value = repo_data1
     repo_id1 = client.post("/api/v1/repositories", json={"url": repo_data1.html_url}).json()["data"]["id"]
@@ -139,7 +158,6 @@ async def test_compare_incomplete_analysis(client: TestClient, mock_github: Asyn
         await analysis_repo.update_status(a1.id, AnalysisStatus.COMPLETED)
         
         a2 = await analysis_repo.create_analysis(repo_id)
-        # a2 is PENDING
         await session.commit()
         
     resp = client.get(f"/api/v1/analyses/{a2.id}/compare/{a1.id}")

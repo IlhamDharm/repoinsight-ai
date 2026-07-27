@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.v1.analyses import router as analyses_router
+from app.api.v1.auth import router as auth_router
 from app.api.v1.health import router as health_router
 from app.api.v1.repositories import router as repositories_router
 from app.core.config import get_settings
@@ -28,6 +29,7 @@ app = FastAPI(
 
 app.add_middleware(RequestIDMiddleware)
 app.add_middleware(LoggingMiddleware)
+app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(health_router, prefix="/api/v1/health", tags=["health"])
 app.include_router(repositories_router, prefix="/api/v1/repositories", tags=["repositories"])
 app.include_router(analyses_router, prefix="/api/v1/analyses", tags=["analyses"])
@@ -65,7 +67,6 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException) 
 async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
     import json as _json
     request_id = getattr(request.state, "request_id", None)
-    # Pydantic v2 errors() bisa mengandung objek Exception nested — stringify via json round-trip
     try:
         safe_errors = _json.loads(_json.dumps(exc.errors(), default=str))
     except Exception:

@@ -1,13 +1,17 @@
 from __future__ import annotations
 
+import asyncio
 import base64
 import uuid
 from unittest.mock import AsyncMock
 
 from fastapi.testclient import TestClient
 
-from app.core.dependencies import get_github_client
+from app.core.database import get_session_factory
+from app.core.dependencies import get_current_user, get_github_client
 from app.core.exceptions import GitHubNotFoundError
+from app.core.security import hash_password
+from app.db.models import User
 from app.integrations.github.client import (
     GitHubClient,
     GitHubContentData,
@@ -22,7 +26,29 @@ def _random_github_repo_id() -> int:
     return (uuid.uuid4().int >> 98) & 0x7FFFFFFF
 
 
+async def _create_test_user() -> User:
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        user = User(
+            email=f"scan_{uuid.uuid4().hex[:8]}@example.com",
+            password_hash=hash_password("TestPassword123!"),
+            is_active=True,
+        )
+        session.add(user)
+        await session.commit()
+        await session.refresh(user)
+        return user
+
+
+def _setup_auth(user: User):
+    async def _get_user() -> User:
+        return user
+    app.dependency_overrides[get_current_user] = _get_user
+
+
 def test_scan_repository_endpoint_success():
+    user = asyncio.get_event_loop().run_until_complete(_create_test_user())
+
     client = TestClient(app)
 
     repo_id = _random_github_repo_id()
@@ -30,7 +56,6 @@ def test_scan_repository_endpoint_success():
     repo_name = f"repo_{uuid.uuid4().hex[:6]}"
     full_name = f"{owner}/{repo_name}"
 
-    # 1. Register repository via API first
     mock_github = AsyncMock(spec=GitHubClient)
     mock_github.get_repository.return_value = GitHubRepoData(
         id=repo_id,
@@ -45,12 +70,12 @@ def test_scan_repository_endpoint_success():
     )
 
     app.dependency_overrides[get_github_client] = lambda: mock_github
+    _setup_auth(user)
 
     reg_resp = client.post("/api/v1/repositories", json={"url": f"https://github.com/{full_name}"})
     assert reg_resp.status_code == 201
     db_id = reg_resp.json()["data"]["id"]
 
-    # 2. Setup mock for scan
     mock_github.get_tree.return_value = GitHubTreeData(
         sha="sha_tree",
         url="http://tree",
@@ -71,7 +96,6 @@ def test_scan_repository_endpoint_success():
 
     mock_github.get_file_content.side_effect = mock_get_content
 
-    # 3. Call scan endpoint
     scan_resp = client.post(f"/api/v1/repositories/{db_id}/scan")
     app.dependency_overrides.clear()
 
@@ -89,9 +113,12 @@ def test_scan_repository_endpoint_success():
 
 
 def test_scan_repository_endpoint_not_found():
+    user = asyncio.get_event_loop().run_until_complete(_create_test_user())
+
     client = TestClient(app)
     mock_github = AsyncMock(spec=GitHubClient)
     app.dependency_overrides[get_github_client] = lambda: mock_github
+    _setup_auth(user)
 
     scan_resp = client.post("/api/v1/repositories/999999/scan")
     app.dependency_overrides.clear()
@@ -103,6 +130,8 @@ def test_scan_repository_endpoint_not_found():
 
 
 def test_scan_repository_endpoint_github_404():
+    user = asyncio.get_event_loop().run_until_complete(_create_test_user())
+
     client = TestClient(app)
 
     repo_id = _random_github_repo_id()
@@ -124,6 +153,7 @@ def test_scan_repository_endpoint_github_404():
     )
 
     app.dependency_overrides[get_github_client] = lambda: mock_github
+    _setup_auth(user)
 
     reg_resp = client.post("/api/v1/repositories", json={"url": f"https://github.com/{full_name}"})
     db_id = reg_resp.json()["data"]["id"]

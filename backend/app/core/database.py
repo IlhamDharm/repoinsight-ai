@@ -7,6 +7,7 @@ from typing import Any
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.pool import NullPool
 
 from app.core.config import get_settings
 
@@ -26,8 +27,6 @@ try:
 except Exception:
     pass
 
-_engine: AsyncEngine | None = None
-_session_factory: async_sessionmaker[AsyncSession] | None = None
 _engine_by_loop: weakref.WeakKeyDictionary[asyncio.AbstractEventLoop, AsyncEngine] = weakref.WeakKeyDictionary()
 _session_factory_by_loop: weakref.WeakKeyDictionary[asyncio.AbstractEventLoop, async_sessionmaker[AsyncSession]] = weakref.WeakKeyDictionary()
 
@@ -42,7 +41,7 @@ def init_database() -> tuple[AsyncEngine, async_sessionmaker[AsyncSession]]:
     engine = create_async_engine(
         settings.database_url,
         echo=settings.database_echo,
-        pool_pre_ping=True,
+        poolclass=NullPool,
     )
     session_factory = async_sessionmaker(bind=engine, expire_on_commit=False)
 

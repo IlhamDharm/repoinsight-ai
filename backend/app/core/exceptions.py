@@ -32,6 +32,16 @@ class DuplicateResourceError(AppException):
         super().__init__(message, status_code=409, code="duplicate_resource", details=details)
 
 
+class AuthenticationError(AppException):
+    def __init__(self, message: str = "Authentication required", details: Any = None) -> None:
+        super().__init__(message, status_code=401, code="authentication_error", details=details)
+
+
+class ForbiddenError(AppException):
+    def __init__(self, message: str = "Access denied", details: Any = None) -> None:
+        super().__init__(message, status_code=403, code="forbidden", details=details)
+
+
 # --- External Service Errors ---
 
 class ExternalServiceError(AppException):
@@ -63,4 +73,3 @@ class GitHubTimeoutError(AppException):
 class GitHubConnectionError(ExternalServiceError):
     def __init__(self, message: str = "Cannot connect to GitHub API", details: Any = None) -> None:
         super().__init__(message, details=details)
-

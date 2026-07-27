@@ -15,6 +15,11 @@ class Settings(BaseSettings):
     github_token: str = ""
     github_timeout: float = 10.0
 
+    # JWT Authentication
+    jwt_secret_key: str = "repoinsight-dev-secret-key-change-in-production-2026"
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 1440
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_prefix="REPOINSIGHT_",

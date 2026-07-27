@@ -11,14 +11,30 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db_session
-from app.core.dependencies import get_request_id_dependency
+from app.core.dependencies import get_current_user, get_request_id_dependency
+from app.core.exceptions import ForbiddenError, NotFoundError
 from app.core.response import build_success_payload
-from app.db.models import AnalysisStatus
+from app.db.models import AnalysisStatus, User
+from app.repositories.repository import RepositoryRepository
 from app.schemas.analysis import AnalysisErrorPayload, AnalysisStatusResponse, AnalysisComparisonResponse
 from app.services.analysis.job_service import AnalysisJobService
 from app.services.analysis.history_service import AnalysisHistoryService
 
 router = APIRouter()
+
+
+async def _assert_analysis_ownership(session: AsyncSession, analysis_id: int, user: User):
+    """Pastikan analysis milik user yang sedang login melalui ownership repository."""
+    job_service = AnalysisJobService(session)
+    analysis = await job_service.get_analysis_by_id(analysis_id)
+
+    repo_repo = RepositoryRepository(session)
+    repository = await repo_repo.get_by_id(analysis.repository_id)
+    if repository is None:
+        raise NotFoundError("Repository tidak ditemukan")
+    if repository.owner_id != user.id:
+        raise ForbiddenError("Anda tidak memiliki akses ke analysis ini")
+    return analysis
 
 
 @router.get("/{analysis_id}", status_code=200)
@@ -27,27 +43,11 @@ async def get_analysis_status(
     request: Request,
     request_id: str = Depends(get_request_id_dependency),
     session: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
-    """Ambil status dan hasil analysis berdasarkan analysis ID.
+    """Ambil status dan hasil analysis berdasarkan analysis ID."""
+    analysis = await _assert_analysis_ownership(session, analysis_id, current_user)
 
-    Args:
-        analysis_id: ID analysis job.
-
-    Returns:
-        200 OK — Status dan detail analisis.
-
-    Response structure:
-        - status "pending"/"running": hanya status + timestamps
-        - status "completed": lengkap dengan summary, scores, findings, recommendations
-        - status "failed": dengan error payload (tanpa detail internal)
-
-    Raises:
-        404 — Analysis tidak ditemukan.
-    """
-    job_service = AnalysisJobService(session)
-    analysis = await job_service.get_analysis_by_id(analysis_id)
-
-    # Build error payload jika FAILED
     error_payload: AnalysisErrorPayload | None = None
     if analysis.status == AnalysisStatus.FAILED:
         error_payload = AnalysisErrorPayload(
@@ -86,20 +86,12 @@ async def compare_analyses(
     request: Request,
     request_id: str = Depends(get_request_id_dependency),
     session: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
-    """Bandingkan dua analysis result.
-    
-    Args:
-        analysis_id: ID analysis job saat ini.
-        previous_analysis_id: ID analysis job sebelumnya.
-        
-    Returns:
-        200 OK — Data komparasi.
-        
-    Raises:
-        400 — Analysis berbeda repository atau belum COMPLETED.
-        404 — Analysis tidak ditemukan.
-    """
+    """Bandingkan dua analysis result."""
+    await _assert_analysis_ownership(session, analysis_id, current_user)
+    await _assert_analysis_ownership(session, previous_analysis_id, current_user)
+
     history_service = AnalysisHistoryService(session)
     comparison_data = await history_service.compare_analyses(
         current_analysis_id=analysis_id,

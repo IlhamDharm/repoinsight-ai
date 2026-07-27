@@ -13,8 +13,10 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db_session
-from app.core.dependencies import get_github_client, get_request_id_dependency
+from app.core.dependencies import get_current_user, get_github_client, get_request_id_dependency
+from app.core.exceptions import ForbiddenError, NotFoundError
 from app.core.response import build_success_payload
+from app.db.models import User
 from app.integrations.github.client import GitHubClient
 from app.schemas.analysis import AnalysisJobResponse
 from app.schemas.repository import (
@@ -27,8 +29,20 @@ from app.services.analysis.job_service import AnalysisJobService
 from app.services.analysis.history_service import AnalysisHistoryService
 from app.services.github_sync import RepositorySyncService
 from app.services.repository_scanner import RepositoryScanService
+from app.repositories.repository import RepositoryRepository
 
 router = APIRouter()
+
+
+async def _get_owned_repository(session: AsyncSession, repository_id: int, user: User):
+    """Ambil repository dan pastikan milik user yang sedang login."""
+    repo_repo = RepositoryRepository(session)
+    repository = await repo_repo.get_by_id(repository_id)
+    if repository is None:
+        raise NotFoundError(f"Repository dengan ID {repository_id} tidak ditemukan")
+    if repository.owner_id != user.id:
+        raise ForbiddenError("Anda tidak memiliki akses ke repository ini")
+    return repository
 
 
 @router.post("", status_code=201)
@@ -38,10 +52,14 @@ async def register_repository(
     request_id: str = Depends(get_request_id_dependency),
     session: AsyncSession = Depends(get_db_session),
     github_client: GitHubClient = Depends(get_github_client),
+    current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
-    """Daftarkan GitHub repository atau perbarui metadata-nya jika sudah ada."""
+    """Daftarkan GitHub repository atau perbarui metadata-nya jika sudah ada.
+
+    Repository akan dimiliki oleh user yang sedang login.
+    """
     service = RepositorySyncService(session=session, github_client=github_client)
-    repository = await service.sync_repository(body.url)
+    repository = await service.sync_repository(body.url, owner_id=current_user.id)
 
     response_data = RepositoryResponse(
         id=repository.id,
@@ -71,22 +89,11 @@ async def scan_repository(
     request_id: str = Depends(get_request_id_dependency),
     session: AsyncSession = Depends(get_db_session),
     github_client: GitHubClient = Depends(get_github_client),
+    current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
-    """Memulai basic repository content & code scan.
+    """Memulai basic repository content & code scan."""
+    await _get_owned_repository(session, repository_id, current_user)
 
-    Args:
-        repository_id: ID repository di database lokal.
-
-    Returns:
-        200 OK — Hasil scan berisi normalized repository structure.
-
-    Raises:
-        404 — Repository tidak ditemukan di database atau di GitHub.
-        429 — GitHub API rate limit terlampaui.
-        401 — Token GitHub tidak valid.
-        504 — GitHub API timeout.
-        502 — External service error.
-    """
     scanner_service = RepositoryScanService(session=session, github_client=github_client)
     scan_result = await scanner_service.scan_repository(repository_id)
 
@@ -117,29 +124,14 @@ async def analyze_repository(
     request_id: str = Depends(get_request_id_dependency),
     session: AsyncSession = Depends(get_db_session),
     github_client: GitHubClient = Depends(get_github_client),
+    current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
-    """Jadwalkan asynchronous AI Static Analysis Engine pada repository.
+    """Jadwalkan asynchronous AI Static Analysis Engine pada repository."""
+    await _get_owned_repository(session, repository_id, current_user)
 
-    Endpoint ini langsung mengembalikan HTTP 202 Accepted tanpa menunggu
-    proses analisis selesai. Proses analisis berjalan di background.
-
-    Gunakan GET /api/v1/analyses/{analysis_id} untuk memantau status.
-
-    Args:
-        repository_id: ID repository di database lokal.
-
-    Returns:
-        202 Accepted — analysis_id, repository_id, dan status "PENDING".
-
-    Raises:
-        404 — Repository tidak ditemukan di database.
-        409 — Sudah ada analysis aktif (PENDING/RUNNING) untuk repository ini.
-    """
-    # Buat analysis job dengan status PENDING
     job_service = AnalysisJobService(session)
     analysis = await job_service.create_analysis_job(repository_id)
 
-    # Jadwalkan background task — HTTP response tidak menunggu ini selesai
     background_tasks.add_task(
         run_background_analysis,
         analysis_id=analysis.id,
@@ -170,24 +162,15 @@ async def get_analysis_history(
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
     request_id: str = Depends(get_request_id_dependency),
     session: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
-    """Ambil history analysis untuk sebuah repository.
-    
-    Args:
-        repository_id: ID repository di database lokal.
-        page: Nomor halaman (default: 1)
-        page_size: Jumlah item per halaman (default: 20, max: 100)
-        
-    Returns:
-        200 OK — Daftar riwayat analysis.
-        
-    Raises:
-        404 — Repository tidak ditemukan.
-    """
+    """Ambil history analysis untuk sebuah repository."""
+    await _get_owned_repository(session, repository_id, current_user)
+
     history_service = AnalysisHistoryService(session)
     history_response = await history_service.get_analysis_history(
-        repository_id=repository_id, 
-        page=page, 
+        repository_id=repository_id,
+        page=page,
         page_size=page_size
     )
 

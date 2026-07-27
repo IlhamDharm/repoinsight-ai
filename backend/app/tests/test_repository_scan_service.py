@@ -8,6 +8,7 @@ import pytest
 
 from app.core.database import get_db_session
 from app.core.exceptions import NotFoundError
+from app.core.security import hash_password
 from app.db.models import Repository, User
 from app.integrations.github.client import (
     GitHubClient,
@@ -30,8 +31,12 @@ async def test_repository_scan_service_success():
     full_name = f"{owner_login}/{repo_name}"
 
     async for session in get_db_session():
-        # Buat user & repo di DB
-        user = User(github_username=owner_login)
+        user = User(
+            email=f"{owner_login}@example.com",
+            password_hash=hash_password("TestPassword123!"),
+            is_active=True,
+            github_username=owner_login,
+        )
         session.add(user)
         await session.flush()
 
@@ -48,7 +53,6 @@ async def test_repository_scan_service_success():
         await session.commit()
         await session.refresh(repo)
 
-        # Mock GitHub Client
         mock_client = AsyncMock(spec=GitHubClient)
         mock_client.get_tree.return_value = GitHubTreeData(
             sha="sha_tree",

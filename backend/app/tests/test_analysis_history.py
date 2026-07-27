@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import uuid
 from unittest.mock import AsyncMock, patch
 
@@ -7,8 +8,9 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.core.database import get_session_factory
-from app.core.dependencies import get_github_client
-from app.db.models import AnalysisStatus
+from app.core.dependencies import get_current_user, get_github_client
+from app.core.security import hash_password
+from app.db.models import AnalysisStatus, User
 from app.integrations.github.client import GitHubRepoData
 from app.main import app
 from app.repositories.analysis import AnalysisRepository
@@ -36,6 +38,26 @@ def _make_mock_github_data() -> GitHubRepoData:
     )
 
 
+async def _create_test_user() -> User:
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        user = User(
+            email=f"history_{uuid.uuid4().hex[:8]}@example.com",
+            password_hash=hash_password("TestPassword123!"),
+            is_active=True,
+        )
+        session.add(user)
+        await session.commit()
+        await session.refresh(user)
+        return user
+
+
+def _setup_auth(user: User):
+    async def _get_user() -> User:
+        return user
+    app.dependency_overrides[get_current_user] = _get_user
+
+
 @pytest.fixture
 def mock_github() -> AsyncMock:
     with patch("app.core.dependencies.get_github_client") as mock:
@@ -48,7 +70,10 @@ def mock_github() -> AsyncMock:
 
 @pytest.fixture
 def client() -> TestClient:
-    return TestClient(app)
+    user = asyncio.get_event_loop().run_until_complete(_create_test_user())
+    _setup_auth(user)
+    yield TestClient(app)
+    app.dependency_overrides.pop(get_current_user, None)
 
 
 @pytest.mark.asyncio
@@ -56,12 +81,10 @@ async def test_get_analysis_history(client: TestClient, mock_github: AsyncMock) 
     repo_data = _make_mock_github_data()
     mock_github.get_repository.return_value = repo_data
 
-    # Register Repo
     resp = client.post("/api/v1/repositories", json={"url": repo_data.html_url})
     assert resp.status_code == 201
     repo_id = resp.json()["data"]["id"]
 
-    # Create analyses directly in DB
     session_factory = get_session_factory()
     async with session_factory() as session:
         analysis_repo = AnalysisRepository(session)
@@ -86,7 +109,6 @@ async def test_get_analysis_history(client: TestClient, mock_github: AsyncMock) 
             scores={"code_quality": 95, "architecture": 85, "maintainability": 90},
         )
 
-    # Fetch history
     resp = client.get(f"/api/v1/repositories/{repo_id}/analyses?page=1&page_size=10")
     assert resp.status_code == 200
     data = resp.json()
@@ -95,10 +117,9 @@ async def test_get_analysis_history(client: TestClient, mock_github: AsyncMock) 
     items = data["data"]
     assert len(items) == 3
 
-    # Ordered descending by created_at (which matches auto-incrementing ID in this fast synchronous DB insert)
     assert items[0]["id"] == a3.id
     assert items[0]["status"] == "COMPLETED"
-    assert items[0]["score"] == 90  # average of 95, 85, 90
+    assert items[0]["score"] == 90
 
     assert items[1]["id"] == a2.id
     assert items[1]["status"] == "FAILED"
@@ -106,7 +127,7 @@ async def test_get_analysis_history(client: TestClient, mock_github: AsyncMock) 
 
     assert items[2]["id"] == a1.id
     assert items[2]["status"] == "COMPLETED"
-    assert items[2]["score"] == 85  # average of 80, 90
+    assert items[2]["score"] == 85
 
     meta = data["meta"]
     assert meta["total"] == 3
@@ -129,7 +150,6 @@ async def test_get_analysis_history_pagination(client: TestClient, mock_github: 
             await analysis_repo.create_analysis(repo_id)
         await session.commit()
 
-    # Fetch page 1
     resp = client.get(f"/api/v1/repositories/{repo_id}/analyses?page=1&page_size=2")
     assert resp.status_code == 200
     data = resp.json()
@@ -137,7 +157,6 @@ async def test_get_analysis_history_pagination(client: TestClient, mock_github: 
     assert data["meta"]["total"] == 5
     assert data["meta"]["total_pages"] == 3
 
-    # Fetch page 3
     resp = client.get(f"/api/v1/repositories/{repo_id}/analyses?page=3&page_size=2")
     assert resp.status_code == 200
     data = resp.json()

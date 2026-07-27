@@ -4,7 +4,8 @@ from datetime import datetime, timezone
 import pytest
 from sqlalchemy.exc import IntegrityError
 
-from app.core.database import get_db_session
+from app.core.database import get_db_session, get_session_factory
+from app.core.security import hash_password
 from app.db.models import User, Repository, Analysis, AnalysisStatus
 from app.repositories.analysis import AnalysisRepository
 from app.repositories.repository import RepositoryRepository
@@ -23,29 +24,44 @@ def _random_github_repo_id() -> int:
     return (uuid.uuid4().int >> 98) & 0x7FFFFFFF
 
 
+async def _create_user(session, email: str | None = None, github_username: str | None = None) -> User:
+    if email is None:
+        email = f"test_{uuid.uuid4().hex[:8]}@example.com"
+    user = User(
+        email=email,
+        password_hash=hash_password("TestPassword123!"),
+        is_active=True,
+        github_username=github_username,
+    )
+    return await UserRepository(session).create(user)
+
+
 @pytest.mark.asyncio
 async def test_user_repository_create_get_by_id_and_unique_identifier() -> None:
-    github_username = _random_github_username()
-    email = f"{github_username}@example.com"
-    user = User(github_username=github_username, email=email)
-
     async for session in get_db_session():
+        email = f"test_{uuid.uuid4().hex[:8]}@example.com"
+        user = User(
+            email=email,
+            password_hash=hash_password("TestPassword123!"),
+            is_active=True,
+        )
         repository = UserRepository(session)
         created_user = await repository.create(user)
 
         assert created_user.id is not None
-        assert created_user.github_username == github_username
         assert created_user.email == email
+        assert created_user.password_hash != "TestPassword123!"
+        assert created_user.is_active is True
         assert created_user.created_at is not None
         assert created_user.updated_at is not None
 
         fetched_by_id = await repository.get_by_id(created_user.id)
-        fetched_by_username = await repository.get_by_github_username(github_username)
+        fetched_by_email = await repository.get_by_email(email)
 
         assert fetched_by_id is not None
-        assert fetched_by_username is not None
+        assert fetched_by_email is not None
         assert fetched_by_id.id == created_user.id
-        assert fetched_by_username.github_username == github_username
+        assert fetched_by_email.email == email
 
 
 @pytest.mark.asyncio
@@ -55,12 +71,11 @@ async def test_repository_repository_create_get_by_id_and_unique_identifiers() -
     github_repo_id = _random_github_repo_id()
 
     async for session in get_db_session():
-        user_repo = UserRepository(session)
-        created_user = await user_repo.create(User(github_username=github_username, email=f"{github_username}@example.com"))
+        user = await _create_user(session, github_username=github_username)
 
         repository_repo = RepositoryRepository(session)
         repository = Repository(
-            owner_id=created_user.id,
+            owner_id=user.id,
             github_repo_id=github_repo_id,
             name="repo-test",
             full_name=repository_full_name,
@@ -71,7 +86,7 @@ async def test_repository_repository_create_get_by_id_and_unique_identifiers() -
         created_repository = await repository_repo.create(repository)
 
         assert created_repository.id is not None
-        assert created_repository.owner_id == created_user.id
+        assert created_repository.owner_id == user.id
         assert created_repository.full_name == repository_full_name
 
         fetched_by_id = await repository_repo.get_by_id(created_repository.id)
@@ -82,7 +97,7 @@ async def test_repository_repository_create_get_by_id_and_unique_identifiers() -
         assert fetched_by_repo_id is not None
         assert fetched_by_full_name is not None
         assert fetched_by_full_name.full_name == repository_full_name
-        assert fetched_by_full_name.owner_id == created_user.id
+        assert fetched_by_full_name.owner_id == user.id
 
 
 @pytest.mark.asyncio
@@ -92,13 +107,12 @@ async def test_analysis_repository_create_and_relationships() -> None:
     github_repo_id = _random_github_repo_id()
 
     async for session in get_db_session():
-        user_repo = UserRepository(session)
-        created_user = await user_repo.create(User(github_username=github_username, email=f"{github_username}@example.com"))
+        user = await _create_user(session, github_username=github_username)
 
         repository_repo = RepositoryRepository(session)
         created_repository = await repository_repo.create(
             Repository(
-                owner_id=created_user.id,
+                owner_id=user.id,
                 github_repo_id=github_repo_id,
                 name="repo-test",
                 full_name=repository_full_name,
@@ -136,26 +150,22 @@ async def test_analysis_repository_create_and_relationships() -> None:
 
 @pytest.mark.asyncio
 async def test_unique_constraints_for_user_and_repository() -> None:
-    github_username = _random_github_username()
     repository_full_name = _random_repository_full_name()
     github_repo_id = _random_github_repo_id()
 
     async for session in get_db_session():
-        user_repo = UserRepository(session)
-        created_user = await user_repo.create(User(github_username=github_username, email=f"{github_username}@example.com"))
+        email1 = f"unique_{uuid.uuid4().hex[:8]}@example.com"
+        user = await _create_user(session, email=email1)
         await session.commit()
 
         with pytest.raises(IntegrityError):
             async with session.begin_nested():
-                await user_repo.create(User(github_username=github_username, email="dup@example.com"))
+                await _create_user(session, email=email1)
 
         repository_repo = RepositoryRepository(session)
-        fetched_user = await user_repo.get_by_github_username(github_username)
-        assert fetched_user is not None
-
         await repository_repo.create(
             Repository(
-                owner_id=fetched_user.id,
+                owner_id=user.id,
                 github_repo_id=github_repo_id,
                 name="repo-test",
                 full_name=repository_full_name,
@@ -170,7 +180,7 @@ async def test_unique_constraints_for_user_and_repository() -> None:
             async with session.begin_nested():
                 await repository_repo.create(
                     Repository(
-                        owner_id=fetched_user.id,
+                        owner_id=user.id,
                         github_repo_id=github_repo_id,
                         name="repo-test-2",
                         full_name=f"{repository_full_name}-other",

@@ -47,7 +47,7 @@ class RepositorySyncService:
         self._repo_repo = RepositoryRepository(session)
         self._user_repo = UserRepository(session)
 
-    async def sync_repository(self, url: str) -> Repository:
+    async def sync_repository(self, url: str, owner_id: int | None = None) -> Repository:
         """Sinkronisasi GitHub repository berdasarkan URL.
 
         Parsing URL → Fetch GitHub metadata → Find or create User →
@@ -55,6 +55,8 @@ class RepositorySyncService:
 
         Args:
             url: URL GitHub repository (mis. https://github.com/owner/repo).
+            owner_id: ID user owner (authenticated user). Jika tidak None,
+                     repository akan dimiliki oleh user ini.
 
         Returns:
             Domain object Repository yang sudah disimpan/diperbarui.
@@ -68,32 +70,38 @@ class RepositorySyncService:
             GitHubConnectionError: Jika tidak bisa terhubung ke GitHub.
             ExternalServiceError: Jika GitHub mengembalikan error server.
         """
-        # Step 1: Parse URL — dapat melempar ValidationError
         parsed = parse_github_url(url)
         logger.info(
             "Memulai sync repository: %s/%s", parsed.owner, parsed.name
         )
 
-        # Step 2: Ambil metadata dari GitHub — dapat melempar GitHub exceptions
         github_data: GitHubRepoData = await self._github_client.get_repository(
             parsed.owner, parsed.name
         )
 
-        # Step 3: Cari atau buat User berdasarkan owner GitHub
-        owner = await self._user_repo.get_by_github_username(github_data.owner_login)
-        if owner is None:
-            logger.debug(
-                "User '%s' belum ada, membuat record baru", github_data.owner_login
-            )
-            owner = await self._user_repo.create(
-                User(github_username=github_data.owner_login)
-            )
+        if owner_id is not None:
+            owner = await self._user_repo.get_by_id(owner_id)
+            if owner is None:
+                from app.core.exceptions import NotFoundError
+                raise NotFoundError("User owner tidak ditemukan")
+        else:
+            owner = await self._user_repo.get_by_github_username(github_data.owner_login)
+            if owner is None:
+                logger.debug(
+                    "User '%s' belum ada, membuat record baru", github_data.owner_login
+                )
+                owner = await self._user_repo.create(
+                    User(
+                        email=f"{github_data.owner_login}@github.local",
+                        password_hash="",
+                        is_active=True,
+                        github_username=github_data.owner_login,
+                    )
+                )
 
-        # Step 4: Cari repository berdasarkan github_repo_id (identifier stabil dari GitHub)
         existing = await self._repo_repo.get_by_github_repo_id(github_data.id)
 
         if existing is None:
-            # Step 5a: Buat record baru
             logger.info(
                 "Repository baru: %s (github_id=%d)", github_data.full_name, github_data.id
             )
@@ -109,7 +117,6 @@ class RepositorySyncService:
                 )
             )
         else:
-            # Step 5b: Update metadata yang mungkin berubah
             logger.info(
                 "Update repository yang sudah ada: %s (github_id=%d)",
                 github_data.full_name,
@@ -122,7 +129,6 @@ class RepositorySyncService:
             existing.visibility = github_data.visibility
             repository = await self._repo_repo.save(existing)
 
-        # Step 6: Commit transaksi
         await self._session.commit()
         logger.info(
             "Sync selesai: repository id=%d, full_name=%s",
