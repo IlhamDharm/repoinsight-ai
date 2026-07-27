@@ -3,41 +3,46 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 4rem 1rem;
+  min-height: 100vh;
+  padding: var(--space-8) var(--space-4);
   text-align: center;
+  background: var(--bg-primary);
 }
 
 .code {
-  font-size: 4rem;
+  font-size: 5rem;
   font-weight: 800;
-  color: #e5e7eb;
-  margin-bottom: 1rem;
+  color: var(--bg-tertiary);
+  margin-bottom: var(--space-4);
+  letter-spacing: -0.04em;
+  line-height: 1;
 }
 
 .title {
-  font-size: 1.5rem;
+  font-size: var(--text-xl);
   font-weight: 700;
-  color: #111827;
-  margin: 0 0 0.5rem;
+  color: var(--text-primary);
+  margin: 0 0 var(--space-2);
+  letter-spacing: -0.02em;
 }
 
 .text {
-  font-size: 0.875rem;
-  color: #6b7280;
-  margin: 0 0 1.5rem;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin: 0 0 var(--space-6);
 }
 
 .link {
-  padding: 0.5rem 1.25rem;
-  background: #2563eb;
+  padding: var(--space-2) var(--space-5);
+  background: var(--accent);
   color: white;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   text-decoration: none;
-  font-size: 0.875rem;
-  font-weight: 500;
-  transition: background 0.15s;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  transition: background var(--transition-fast);
 }
 
 .link:hover {
-  background: #1d4ed8;
+  background: var(--accent-hover);
 }

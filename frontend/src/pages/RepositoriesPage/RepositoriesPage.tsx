@@ -4,11 +4,12 @@ import { apiRequestFull } from "../../api/client";
 import { ApiError } from "../../utils/errors";
 import { ErrorDisplay } from "../../components/ErrorDisplay/ErrorDisplay";
 import { LoadingSpinner } from "../../components/LoadingSpinner/LoadingSpinner";
-import { EmptyState } from "../../components/EmptyState/EmptyState";
+import { useToast } from "../../components/Toast/Toast";
 import type { Repository } from "../../types/api";
 import styles from "./RepositoriesPage.module.css";
 
 export function RepositoriesPage() {
+  const { showToast } = useToast();
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -18,7 +19,6 @@ export function RepositoriesPage() {
   const [registerUrl, setRegisterUrl] = useState("");
   const [isRegistering, setIsRegistering] = useState(false);
   const [registerError, setRegisterError] = useState<string | null>(null);
-  const [registerSuccess, setRegisterSuccess] = useState<string | null>(null);
 
   const fetchRepositories = useCallback(async (pageNum: number) => {
     setIsLoading(true);
@@ -51,13 +51,12 @@ export function RepositoriesPage() {
     if (!registerUrl.trim()) return;
     setIsRegistering(true);
     setRegisterError(null);
-    setRegisterSuccess(null);
     try {
-      const repo = await apiRequestFull<Repository>("/api/v1/repositories", {
+      await apiRequestFull<Repository>("/api/v1/repositories", {
         method: "POST",
         body: { url: registerUrl.trim() },
       });
-      setRegisterSuccess(`Repository "${repo.data.name}" berhasil didaftarkan.`);
+      showToast("Repository berhasil didaftarkan", "success");
       setRegisterUrl("");
       await fetchRepositories(1);
       setPage(1);
@@ -84,12 +83,11 @@ export function RepositoriesPage() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.header}>
+      <div className={styles.pageHeader}>
         <h1 className={styles.title}>Repositories</h1>
       </div>
 
       <div className={styles.registerSection}>
-        <h3 className={styles.registerTitle}>Daftarkan Repository</h3>
         <form onSubmit={handleRegister} className={styles.registerForm}>
           <input
             type="url"
@@ -99,27 +97,27 @@ export function RepositoriesPage() {
             placeholder="https://github.com/owner/repo"
             required
             disabled={isRegistering}
+            aria-label="GitHub repository URL"
           />
           <button
             type="submit"
             className={styles.registerButton}
             disabled={isRegistering || !registerUrl.trim()}
           >
-            {isRegistering ? "Mendaftarkan..." : "Daftarkan"}
+            {isRegistering ? "..." : "Daftarkan"}
           </button>
         </form>
         {registerError && <div className={styles.registerError}>{registerError}</div>}
-        {registerSuccess && <div className={styles.registerSuccess}>{registerSuccess}</div>}
       </div>
 
       {isLoading ? (
         <LoadingSpinner message="Memuat repositories..." />
       ) : repositories.length === 0 ? (
-        <EmptyState
-          icon="📦"
-          title="Belum ada repositories"
-          description="Daftarkan repository GitHub pertama Anda untuk memulai analisis."
-        />
+        <div style={{ textAlign: "center", padding: "var(--space-12) 0" }}>
+          <p style={{ color: "var(--text-muted)", fontSize: "var(--text-sm)", marginBottom: "var(--space-4)" }}>
+            Belum ada repositories. Daftarkan repository pertama Anda di atas.
+          </p>
+        </div>
       ) : (
         <>
           <div className={styles.grid}>
@@ -143,8 +141,8 @@ export function RepositoriesPage() {
                 </div>
                 <p className={styles.fullName}>{repo.full_name}</p>
                 <div className={styles.cardMeta}>
-                  <span>Branch: {repo.default_branch}</span>
-                  <span className={styles.viewDetail}>Lihat Detail →</span>
+                  <span>{repo.default_branch}</span>
+                  <span className={styles.viewDetail}>Detail →</span>
                 </div>
               </Link>
             ))}
@@ -157,17 +155,17 @@ export function RepositoriesPage() {
                 disabled={page <= 1}
                 onClick={() => setPage((p) => p - 1)}
               >
-                Sebelumnya
+                ← Sebelumnya
               </button>
               <span className={styles.pageInfo}>
-                Halaman {page} dari {totalPages}
+                {page} / {totalPages}
               </span>
               <button
                 className={styles.pageButton}
                 disabled={page >= totalPages}
                 onClick={() => setPage((p) => p + 1)}
               >
-                Selanjutnya
+                Selanjutnya →
               </button>
             </div>
           )}

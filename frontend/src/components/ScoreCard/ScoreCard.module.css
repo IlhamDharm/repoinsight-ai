@@ -1,66 +1,67 @@
 .card {
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 1rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
 }
 
 .label {
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   font-weight: 500;
-  color: #6b7280;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--space-2);
 }
 
 .value {
-  font-size: 1.75rem;
+  font-size: var(--text-2xl);
   font-weight: 700;
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--space-3);
+  line-height: var(--leading-tight);
 }
 
 .good {
-  color: #059669;
+  color: var(--success);
 }
 
 .fair {
-  color: #d97706;
+  color: var(--warning);
 }
 
 .poor {
-  color: #ea580c;
+  color: #f97316;
 }
 
 .critical {
-  color: #dc2626;
+  color: var(--error);
 }
 
 .bar {
-  height: 4px;
-  background: #e5e7eb;
-  border-radius: 2px;
+  height: 3px;
+  background: var(--bg-hover);
+  border-radius: var(--radius-full);
   overflow: hidden;
 }
 
 .fill {
   height: 100%;
-  border-radius: 2px;
-  transition: width 0.5s ease;
+  border-radius: var(--radius-full);
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .fill.good {
-  background: #059669;
+  background: var(--success);
 }
 
 .fill.fair {
-  background: #d97706;
+  background: var(--warning);
 }
 
 .fill.poor {
-  background: #ea580c;
+  background: #f97316;
 }
 
 .fill.critical {
-  background: #dc2626;
+  background: var(--error);
 }

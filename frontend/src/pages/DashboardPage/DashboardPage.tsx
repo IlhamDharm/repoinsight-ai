@@ -4,7 +4,6 @@ import { apiRequest } from "../../api/client";
 import { ApiError } from "../../utils/errors";
 import { ErrorDisplay } from "../../components/ErrorDisplay/ErrorDisplay";
 import { LoadingSpinner } from "../../components/LoadingSpinner/LoadingSpinner";
-import { EmptyState } from "../../components/EmptyState/EmptyState";
 import { StatusBadge } from "../../components/StatusBadge/StatusBadge";
 import { useAuth } from "../../context/AuthContext";
 import type { DashboardStats } from "../../types/api";
@@ -51,53 +50,55 @@ export function DashboardPage() {
     return <LoadingSpinner message="Memuat dashboard..." />;
   }
 
+  const displayName = user?.email?.split("@")[0] || "User";
+
   return (
     <div className={styles.page}>
-      <div className={styles.welcome}>
-        <h1 className={styles.welcomeTitle}>
-          Selamat datang, {user?.email?.split("@")[0]}
-        </h1>
-        <p className={styles.welcomeText}>
-          Kelola dan analisis repository GitHub Anda.
-        </p>
+      <div className={styles.greeting}>
+        <p className={styles.greetingText}>Dashboard</p>
+        <h1 className={styles.greetingName}>Selamat datang, {displayName}</h1>
       </div>
 
-      <div className={styles.statsGrid}>
-        <div className={styles.statCard}>
-          <div className={styles.statIcon}>📦</div>
-          <div className={styles.statInfo}>
-            <div className={styles.statValue}>{stats?.repository_count ?? 0}</div>
-            <div className={styles.statLabel}>Repositories</div>
-          </div>
-          <Link to="/repositories" className={styles.statLink}>
-            Lihat semua
-          </Link>
+      <div className={styles.metricsGrid}>
+        <div className={styles.metricCard}>
+          <div className={styles.metricValue}>{stats?.repository_count ?? 0}</div>
+          <div className={styles.metricLabel}>Repositories</div>
         </div>
-        <div className={styles.statCard}>
-          <div className={styles.statIcon}>🔍</div>
-          <div className={styles.statInfo}>
-            <div className={styles.statValue}>{stats?.analysis_count ?? 0}</div>
-            <div className={styles.statLabel}>Total Analisis</div>
+        <div className={styles.metricCard}>
+          <div className={styles.metricValue}>{stats?.analysis_count ?? 0}</div>
+          <div className={styles.metricLabel}>Analisis Selesai</div>
+        </div>
+        <div className={styles.metricCard}>
+          <div className={styles.metricValue}>
+            {stats?.recent_analyses?.filter((a) => a.status === "RUNNING").length ?? 0}
           </div>
+          <div className={styles.metricLabel}>Sedang Berjalan</div>
         </div>
       </div>
 
       <div className={styles.section}>
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Aktivitas Terbaru</h2>
+          {stats && stats.recent_analyses.length > 0 && (
+            <Link to="/repositories" className={styles.sectionLink}>
+              Lihat semua →
+            </Link>
+          )}
         </div>
 
         {!stats || stats.recent_analyses.length === 0 ? (
-          <EmptyState
-            icon="📊"
-            title="Belum ada aktivitas"
-            description="Mulai dengan mendaftarkan repository atau menjalankan analisis."
-            action={
-              <Link to="/repositories" className={styles.primaryButton}>
-                Mulai Sekarang
-              </Link>
-            }
-          />
+          <div className={styles.activityList}>
+            <div style={{ padding: "var(--space-8)", textAlign: "center" }}>
+              <p style={{ color: "var(--text-muted)", fontSize: "var(--text-sm)", marginBottom: "var(--space-4)" }}>
+                Belum ada aktivitas analisis.
+              </p>
+              <div className={styles.emptyActions}>
+                <Link to="/repositories" className={styles.emptyButton}>
+                  Lihat Repositories
+                </Link>
+              </div>
+            </div>
+          </div>
         ) : (
           <div className={styles.activityList}>
             {stats.recent_analyses.map((item) => (
@@ -131,20 +132,6 @@ export function DashboardPage() {
           </div>
         )}
       </div>
-
-      {stats && stats.repository_count > 0 && (
-        <div className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <h2 className={styles.sectionTitle}>Aksi Cepat</h2>
-          </div>
-          <div className={styles.actions}>
-            <Link to="/repositories" className={styles.actionButton}>
-              <span className={styles.actionIcon}>📦</span>
-              <span className={styles.actionText}>Lihat Repositories</span>
-            </Link>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

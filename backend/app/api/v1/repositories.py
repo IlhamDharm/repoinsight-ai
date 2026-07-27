@@ -1,6 +1,8 @@
 """API endpoint untuk manajemen repository.
 
 Endpoints:
+    GET  /api/v1/repositories              — Ambil daftar repository milik user
+    GET  /api/v1/repositories/{id}         — Ambil detail satu repository
     POST /api/v1/repositories              — Daftarkan atau perbarui GitHub repository
     POST /api/v1/repositories/{id}/scan   — Scan repository content
     POST /api/v1/repositories/{id}/analyze — Jadwalkan analysis (async, returns 202)
@@ -92,6 +94,38 @@ async def list_user_repositories(
 async def _get_owned_repository(session: AsyncSession, repository_id: int, user: User):
     """Ambil repository dan pastikan milik user yang sedang login."""
     return await verify_repository_owner(repository_id, user, session)
+
+
+@router.get("/{repository_id}", status_code=200)
+async def get_repository(
+    repository_id: int,
+    request: Request,
+    request_id: str = Depends(get_request_id_dependency),
+    session: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_user),
+) -> JSONResponse:
+    """Ambil detail satu repository berdasarkan ID."""
+    repository = await _get_owned_repository(session, repository_id, current_user)
+
+    response_data = RepositoryListItem(
+        id=repository.id,
+        github_repo_id=repository.github_repo_id,
+        name=repository.name,
+        full_name=repository.full_name,
+        url=repository.url,
+        default_branch=repository.default_branch,
+        visibility=repository.visibility,
+        created_at=repository.created_at,
+        updated_at=repository.updated_at,
+    )
+
+    return JSONResponse(
+        status_code=200,
+        content=build_success_payload(
+            response_data.model_dump(mode="json"),
+            request_id=request_id,
+        ),
+    )
 
 
 @router.post("", status_code=201)
