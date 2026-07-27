@@ -62,22 +62,34 @@ export interface RepositoryListItem {
   updated_at: string;
 }
 
+export type AnalysisStatus = "PENDING" | "RUNNING" | "COMPLETED" | "FAILED";
+
 export interface Analysis {
   id: number;
   repository_id: number;
-  status: "PENDING" | "RUNNING" | "COMPLETED" | "FAILED";
+  status: AnalysisStatus;
   started_at: string | null;
   completed_at: string | null;
   created_at: string;
   updated_at: string;
   summary: Record<string, unknown> | null;
   scores: Record<string, number> | null;
-  findings: unknown[] | null;
+  findings: Finding[] | null;
   recommendations: string[] | null;
   error?: {
     code: string;
     message: string;
   };
+}
+
+export interface Finding {
+  rule_id: string;
+  severity: string;
+  category: string;
+  title: string;
+  description: string;
+  file_path: string | null;
+  recommendation: string;
 }
 
 export interface AnalysisHistoryItem {
@@ -93,4 +105,57 @@ export interface PaginationMeta {
   page_size: number;
   total: number;
   total_pages: number;
+}
+
+export interface AnalysisJobResponse {
+  analysis_id: number;
+  repository_id: number;
+  status: string;
+}
+
+export interface ScanFile {
+  path: string;
+  language: string;
+  size: number;
+  lines: number;
+}
+
+export interface ScanResult {
+  repository: string;
+  branch: string;
+  total_files: number;
+  total_source_files: number;
+  total_lines: number;
+  languages: Record<string, number>;
+  files: ScanFile[];
+}
+
+export interface DashboardStats {
+  repository_count: number;
+  analysis_count: number;
+  recent_analyses: RecentAnalysisItem[];
+}
+
+export interface RecentAnalysisItem {
+  id: number;
+  status: string;
+  created_at: string | null;
+  completed_at: string | null;
+  repository_id: number;
+  repository_name: string;
+  score: number | null;
+}
+
+export interface LanguageSummary {
+  files: number;
+  lines: number;
+  percentage: number;
+}
+
+export interface AnalysisSummary {
+  total_files: number;
+  total_source_files: number;
+  total_lines: number;
+  dominant_language: string | null;
+  languages: Record<string, LanguageSummary>;
 }

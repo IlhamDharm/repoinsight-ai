@@ -14,49 +14,71 @@
   margin: 0;
 }
 
-.loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 4rem 1rem;
-  color: #6b7280;
+.registerSection {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
 }
 
-.spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid #e5e7eb;
-  border-top-color: #2563eb;
-  border-radius: 50%;
-  animation: spin 0.6s linear infinite;
-  margin-bottom: 1rem;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.empty {
-  text-align: center;
-  padding: 4rem 1rem;
-}
-
-.emptyIcon {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-}
-
-.emptyTitle {
-  font-size: 1.125rem;
+.registerTitle {
+  font-size: 0.9375rem;
   font-weight: 600;
-  color: #374151;
-  margin: 0 0 0.5rem;
+  color: #111827;
+  margin: 0 0 0.75rem;
 }
 
-.emptyText {
+.registerForm {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.registerInput {
+  flex: 1;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
   font-size: 0.875rem;
-  color: #6b7280;
-  margin: 0;
+}
+
+.registerInput:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.registerButton {
+  padding: 0.625rem 1.25rem;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.registerButton:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.registerButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.registerError {
+  margin-top: 0.5rem;
+  font-size: 0.8125rem;
+  color: #dc2626;
+}
+
+.registerSuccess {
+  margin-top: 0.5rem;
+  font-size: 0.8125rem;
+  color: #059669;
 }
 
 .grid {
@@ -70,7 +92,9 @@
   border: 1px solid #e5e7eb;
   border-radius: 10px;
   padding: 1.25rem;
+  text-decoration: none;
   transition: box-shadow 0.15s;
+  display: block;
 }
 
 .card:hover {
@@ -124,14 +148,9 @@
   color: #9ca3af;
 }
 
-.link {
+.viewDetail {
   color: #2563eb;
-  text-decoration: none;
   font-weight: 500;
-}
-
-.link:hover {
-  text-decoration: underline;
 }
 
 .pagination {

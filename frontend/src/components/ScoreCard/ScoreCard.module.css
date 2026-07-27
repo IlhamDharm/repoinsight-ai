@@ -1,0 +1,66 @@
+.card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.good {
+  color: #059669;
+}
+
+.fair {
+  color: #d97706;
+}
+
+.poor {
+  color: #ea580c;
+}
+
+.critical {
+  color: #dc2626;
+}
+
+.bar {
+  height: 4px;
+  background: #e5e7eb;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+
+.fill.good {
+  background: #059669;
+}
+
+.fill.fair {
+  background: #d97706;
+}
+
+.fill.poor {
+  background: #ea580c;
+}
+
+.fill.critical {
+  background: #dc2626;
+}

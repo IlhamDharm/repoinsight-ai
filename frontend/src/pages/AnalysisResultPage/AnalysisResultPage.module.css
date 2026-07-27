@@ -1,0 +1,238 @@
+.page {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.backLink {
+  display: inline-block;
+  font-size: 0.8125rem;
+  color: #6b7280;
+  text-decoration: none;
+  margin-bottom: 1rem;
+}
+
+.backLink:hover {
+  color: #111827;
+}
+
+.header {
+  margin-bottom: 1.5rem;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-top: 0.5rem;
+  font-size: 0.8125rem;
+  color: #9ca3af;
+}
+
+.runningBanner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  background: #dbeafe;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  color: #1e40af;
+  margin-bottom: 1.5rem;
+}
+
+.runningSpinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #93c5fd;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.errorBanner {
+  padding: 1rem 1.25rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
+}
+
+.errorTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #dc2626;
+  margin-bottom: 0.25rem;
+}
+
+.errorMessage {
+  font-size: 0.8125rem;
+  color: #991b1b;
+}
+
+.section {
+  margin-bottom: 2rem;
+}
+
+.sectionTitle {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 1rem;
+}
+
+.scoresGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+}
+
+.summaryItem {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1rem;
+  text-align: center;
+}
+
+.summaryValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.summaryLabel {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
+}
+
+.findingsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.findingCard {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.findingHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.findingSeverity {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  text-transform: uppercase;
+}
+
+.findingSeverity.critical {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.findingSeverity.high {
+  background: #fff7ed;
+  color: #ea580c;
+}
+
+.findingSeverity.medium {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.findingSeverity.low {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.findingSeverity.info {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.findingTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.findingDescription {
+  font-size: 0.8125rem;
+  color: #4b5563;
+  margin: 0 0 0.5rem;
+  line-height: 1.5;
+}
+
+.findingFile {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-bottom: 0.5rem;
+}
+
+.findingRecommendation {
+  font-size: 0.8125rem;
+  color: #2563eb;
+  background: #eff6ff;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+}
+
+.recommendationsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.recommendationItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #374151;
+  padding: 0.75rem 1rem;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  line-height: 1.5;
+}
+
+.recommendationBullet {
+  color: #2563eb;
+  font-weight: 700;
+  flex-shrink: 0;
+}

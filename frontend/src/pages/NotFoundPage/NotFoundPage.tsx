@@ -7,8 +7,8 @@ export function NotFoundPage() {
       <div className={styles.code}>404</div>
       <h1 className={styles.title}>Halaman Tidak Ditemukan</h1>
       <p className={styles.text}>Halaman yang Anda cari tidak tersedia.</p>
-      <Link to="/repositories" className={styles.link}>
-        Kembali ke Repositories
+      <Link to="/dashboard" className={styles.link}>
+        Kembali ke Dashboard
       </Link>
     </div>
   );

@@ -10,6 +10,15 @@ export function Sidebar() {
       </div>
       <nav className={styles.nav}>
         <NavLink
+          to="/dashboard"
+          className={({ isActive }) =>
+            `${styles.navLink} ${isActive ? styles.active : ""}`
+          }
+        >
+          <span className={styles.navIcon}>📊</span>
+          Dashboard
+        </NavLink>
+        <NavLink
           to="/repositories"
           className={({ isActive }) =>
             `${styles.navLink} ${isActive ? styles.active : ""}`
