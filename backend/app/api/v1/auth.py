@@ -3,6 +3,7 @@
 Endpoints:
     POST /api/v1/auth/register — Daftarkan user baru
     POST /api/v1/auth/login   — Login dan dapatkan access token
+    GET  /api/v1/auth/me       — Dapatkan data user yang sedang login
 """
 from __future__ import annotations
 
@@ -11,8 +12,9 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db_session
-from app.core.dependencies import get_request_id_dependency
+from app.core.dependencies import get_current_user, get_request_id_dependency
 from app.core.response import build_success_payload
+from app.db.models import User
 from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse
 from app.services.auth import AuthService
 
@@ -76,6 +78,30 @@ async def login(
         status_code=200,
         content=build_success_payload(
             token_data.model_dump(),
+            request_id=request_id,
+        ),
+    )
+
+
+@router.get("/me", status_code=200)
+async def get_me(
+    request: Request,
+    request_id: str = Depends(get_request_id_dependency),
+    current_user: User = Depends(get_current_user),
+) -> JSONResponse:
+    """Dapatkan data user yang sedang login.
+
+    Returns:
+        200 — Data user (tanpa password).
+    """
+    return JSONResponse(
+        status_code=200,
+        content=build_success_payload(
+            {
+                "id": current_user.id,
+                "email": current_user.email,
+                "is_active": current_user.is_active,
+            },
             request_id=request_id,
         ),
     )
