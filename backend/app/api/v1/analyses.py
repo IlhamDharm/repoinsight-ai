@@ -28,7 +28,21 @@ async def _assert_analysis_ownership(session: AsyncSession, analysis_id: int, us
     return await verify_analysis_owner(analysis_id, user, session)
 
 
-@router.get("/{analysis_id}", status_code=200)
+@router.get(
+    "/{analysis_id}",
+    status_code=200,
+    summary="Get analysis status and results",
+    description=(
+        "Retrieve the full status and results of an analysis.\n\n"
+        "If status is `COMPLETED`, includes `scores`, `findings`, `recommendations`, and `summary`.\n"
+        "If status is `FAILED`, includes an `error` object with failure details."
+    ),
+    responses={
+        200: {"description": "Analysis status and results"},
+        403: {"description": "Not the analysis owner"},
+        404: {"description": "Analysis not found"},
+    },
+)
 async def get_analysis_status(
     analysis_id: int,
     request: Request,
@@ -70,7 +84,20 @@ async def get_analysis_status(
     )
 
 
-@router.get("/{analysis_id}/compare/{previous_analysis_id}", status_code=200)
+@router.get(
+    "/{analysis_id}/compare/{previous_analysis_id}",
+    status_code=200,
+    summary="Compare two analyses",
+    description=(
+        "Compare two analysis results side by side. Returns score changes, "
+        "category differences, and findings count delta."
+    ),
+    responses={
+        200: {"description": "Comparison data"},
+        403: {"description": "Not the analysis owner"},
+        404: {"description": "One or both analyses not found"},
+    },
+)
 async def compare_analyses(
     analysis_id: int,
     previous_analysis_id: int,

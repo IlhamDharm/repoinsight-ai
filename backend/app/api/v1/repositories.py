@@ -37,7 +37,12 @@ from app.repositories.repository import RepositoryRepository
 router = APIRouter()
 
 
-@router.get("", status_code=200)
+@router.get(
+    "",
+    status_code=200,
+    summary="List user repositories",
+    description="Retrieve a paginated list of GitHub repositories owned by the authenticated user.",
+)
 async def list_user_repositories(
     request: Request,
     page: int = Query(1, ge=1, description="Page number"),
@@ -96,7 +101,17 @@ async def _get_owned_repository(session: AsyncSession, repository_id: int, user:
     return await verify_repository_owner(repository_id, user, session)
 
 
-@router.get("/{repository_id}", status_code=200)
+@router.get(
+    "/{repository_id}",
+    status_code=200,
+    summary="Get repository detail",
+    description="Retrieve detailed information about a specific repository by its ID.",
+    responses={
+        200: {"description": "Repository details"},
+        403: {"description": "Not the repository owner"},
+        404: {"description": "Repository not found"},
+    },
+)
 async def get_repository(
     repository_id: int,
     request: Request,
@@ -128,7 +143,20 @@ async def get_repository(
     )
 
 
-@router.post("", status_code=201)
+@router.post(
+    "",
+    status_code=201,
+    summary="Register a GitHub repository",
+    description=(
+        "Register a GitHub repository for analysis. Fetches metadata from the GitHub API.\n\n"
+        "If the repository is already registered, its metadata is updated."
+    ),
+    responses={
+        201: {"description": "Repository registered successfully"},
+        409: {"description": "Repository already registered"},
+        404: {"description": "GitHub repository not found"},
+    },
+)
 async def register_repository(
     body: RegisterRepositoryRequest,
     request: Request,
@@ -165,7 +193,20 @@ async def register_repository(
     )
 
 
-@router.post("/{repository_id}/scan", status_code=200)
+@router.post(
+    "/{repository_id}/scan",
+    status_code=200,
+    summary="Scan repository content",
+    description=(
+        "Scan the repository to collect file metadata, detect programming languages, "
+        "and count lines of code. Returns detailed scan results."
+    ),
+    responses={
+        200: {"description": "Scan completed successfully"},
+        403: {"description": "Not the repository owner"},
+        404: {"description": "Repository not found"},
+    },
+)
 async def scan_repository(
     repository_id: int,
     request: Request,
@@ -199,7 +240,21 @@ async def scan_repository(
     )
 
 
-@router.post("/{repository_id}/analyze", status_code=202)
+@router.post(
+    "/{repository_id}/analyze",
+    status_code=202,
+    summary="Start AI analysis",
+    description=(
+        "Schedule an asynchronous AI static analysis on the repository.\n\n"
+        "Returns immediately with status `PENDING`. Use `GET /analyses/{id}` to poll for results."
+    ),
+    responses={
+        202: {"description": "Analysis job scheduled"},
+        403: {"description": "Not the repository owner"},
+        404: {"description": "Repository not found"},
+        409: {"description": "Analysis already in progress"},
+    },
+)
 async def analyze_repository(
     repository_id: int,
     request: Request,
@@ -237,7 +292,17 @@ async def analyze_repository(
     )
 
 
-@router.get("/{repository_id}/analyses", status_code=200)
+@router.get(
+    "/{repository_id}/analyses",
+    status_code=200,
+    summary="Get analysis history",
+    description="Retrieve a paginated list of analysis results for a specific repository.",
+    responses={
+        200: {"description": "Analysis history"},
+        403: {"description": "Not the repository owner"},
+        404: {"description": "Repository not found"},
+    },
+)
 async def get_analysis_history(
     repository_id: int,
     request: Request,

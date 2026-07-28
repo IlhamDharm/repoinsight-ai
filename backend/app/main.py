@@ -25,8 +25,22 @@ settings = get_settings()
 app = FastAPI(
     title=settings.app_name,
     version="0.1.0",
-    description="RepoInsight AI backend foundation",
+    description=(
+        "RepoInsight AI — AI-powered GitHub repository analysis platform.\n\n"
+        "Register and manage GitHub repositories, run automated code quality analysis, "
+        "track analysis history, and compare results over time.\n\n"
+        "**Authentication:** Bearer JWT token via `Authorization` header.\n\n"
+        "**Base URL:** `/api/v1`"
+    ),
     debug=settings.debug,
+    openapi_tags=[
+        {"name": "auth", "description": "User registration, login, and profile"},
+        {"name": "health", "description": "Application health checks and readiness probes"},
+        {"name": "repositories", "description": "GitHub repository management and scanning"},
+        {"name": "analyses", "description": "Analysis results, status, and comparison"},
+        {"name": "dashboard", "description": "Dashboard statistics and summary"},
+        {"name": "meta", "description": "Service metadata"},
+    ],
 )
 
 # CORS middleware
@@ -111,7 +125,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
     )
 
 
-@app.get("/", tags=["meta"])
+@app.get("/", tags=["meta"], summary="Service metadata", description="Returns the service name and status.")
 async def root(request: Request, request_id: str = Depends(get_request_id_dependency)) -> JSONResponse:
     return JSONResponse(
         status_code=200,

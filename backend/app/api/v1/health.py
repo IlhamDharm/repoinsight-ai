@@ -11,7 +11,11 @@ router = APIRouter()
 settings = get_settings()
 
 
-@router.get("/live")
+@router.get(
+    "/live",
+    summary="Liveness probe",
+    description="Returns application status. Use for Kubernetes liveness probes.",
+)
 async def health_live(
     request: Request,
     request_id: str = Depends(get_request_id_dependency),
@@ -23,7 +27,11 @@ async def health_live(
     )
 
 
-@router.get("/ready")
+@router.get(
+    "/ready",
+    summary="Readiness probe",
+    description="Returns application readiness status. Use for Kubernetes readiness probes.",
+)
 async def health_ready(
     request: Request,
     request_id: str = Depends(get_request_id_dependency),
@@ -35,7 +43,15 @@ async def health_ready(
     )
 
 
-@router.get("/db")
+@router.get(
+    "/db",
+    summary="Database health check",
+    description="Executes `SELECT 1` against PostgreSQL to verify database connectivity.",
+    responses={
+        200: {"description": "Database is healthy"},
+        503: {"description": "Database unavailable"},
+    },
+)
 async def database_health(
     request: Request,
     request_id: str = Depends(get_request_id_dependency),

@@ -21,7 +21,21 @@ from app.services.auth import AuthService
 router = APIRouter()
 
 
-@router.post("/register", status_code=201)
+@router.post(
+    "/register",
+    status_code=201,
+    summary="Register a new user",
+    description=(
+        "Create a new user account.\n\n"
+        "**Password rules:** 8-128 characters, must contain at least 1 uppercase, "
+        "1 lowercase, 1 digit, and 1 special character."
+    ),
+    responses={
+        201: {"description": "User registered successfully"},
+        409: {"description": "Email already registered"},
+        422: {"description": "Validation error"},
+    },
+)
 async def register(
     body: RegisterRequest,
     request: Request,
@@ -53,7 +67,19 @@ async def register(
     )
 
 
-@router.post("/login", status_code=200)
+@router.post(
+    "/login",
+    status_code=200,
+    summary="Login and get access token",
+    description=(
+        "Authenticate with email and password to receive a JWT access token.\n\n"
+        "The returned token should be used as `Authorization: Bearer <token>` in subsequent requests."
+    ),
+    responses={
+        200: {"description": "Login successful, token returned"},
+        404: {"description": "Invalid credentials"},
+    },
+)
 async def login(
     body: LoginRequest,
     request: Request,
@@ -83,7 +109,16 @@ async def login(
     )
 
 
-@router.get("/me", status_code=200)
+@router.get(
+    "/me",
+    status_code=200,
+    summary="Get current user profile",
+    description="Return the authenticated user's profile information (without password).",
+    responses={
+        200: {"description": "User profile"},
+        401: {"description": "Authentication required"},
+    },
+)
 async def get_me(
     request: Request,
     request_id: str = Depends(get_request_id_dependency),

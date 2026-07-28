@@ -22,7 +22,19 @@ from app.repositories.repository import RepositoryRepository
 router = APIRouter()
 
 
-@router.get("/stats", status_code=200)
+@router.get(
+    "/stats",
+    status_code=200,
+    summary="Get dashboard statistics",
+    description=(
+        "Retrieve summary statistics for the authenticated user's dashboard.\n\n"
+        "Returns `repository_count`, `analysis_count`, and the 5 most recent analyses with scores."
+    ),
+    responses={
+        200: {"description": "Dashboard statistics"},
+        401: {"description": "Authentication required"},
+    },
+)
 async def get_dashboard_stats(
     request: Request,
     request_id: str = Depends(get_request_id_dependency),
