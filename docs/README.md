@@ -27,8 +27,8 @@ Bagian `docs/` berisi seluruh dokumentasi teknis dan panduan untuk RepoInsight A
 | [DEPLOYMENT.md](./DEPLOYMENT.md) | Panduan deployment ke production — konfigurasi environment, security hardening, reverse proxy, monitoring, dan scaling |
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | Arsitektur sistem secara menyeluruh — diagram komponen, alur data, integrasi GitHub API, dan design decisions |
 | [SECURITY.md](./SECURITY.md) | Keamanan aplikasi — autentikasi JWT, hashing password, CORS policy, rate limiting, input validation, dan security best practices |
-| [CONTRIBUTING.md](./CONTRIBUTING.md) | Panduan kontribusi — cara berkontribusi, coding standards, branch naming, commit conventions, dan PR workflow |
-| [CHANGELOG.md](./CHANGELOG.md) | Riwayat perubahan — catatan rilis setiap versi, fitur baru, perbaikan bug, dan breaking changes |
+| [CONTRIBUTING.md](../CONTRIBUTING.md) | Panduan kontribusi — cara berkontribusi, coding standards, branch naming, commit conventions, dan PR workflow |
+| [CHANGELOG.md](../CHANGELOG.md) | Riwayat perubahan — catatan rilis setiap versi, fitur baru, perbaikan bug, dan breaking changes |
 | [FAQ.md](./FAQ.md) | Pertanyaan umum — jawaban atas pertanyaan yang sering ditanyakan seputar instalasi, penggunaan, dan troubleshooting |
 | [ROADMAP.md](./ROADMAP.md) | Peta jalan proyek — fitur yang sudah tersedia, yang sedang dikerjakan, dan yang direncanakan untuk masa depan |
 
@@ -41,7 +41,7 @@ Bagian `docs/` berisi seluruh dokumentasi teknis dan panduan untuk RepoInsight A
 | Baru pertama kali menggunakan RepoInsight AI | [INSTALLATION.md](./INSTALLATION.md) |
 | Ingin memahami cara kerja sistem | [ARCHITECTURE.md](./ARCHITECTURE.md) |
 | Hendak menggunakan API | [API.md](./API.md) |
-| Hendak berkontribusi ke proyek | [CONTRIBUTING.md](./CONTRIBUTING.md) |
+| Hendak berkontribusi ke proyek | [CONTRIBUTING.md](../CONTRIBUTING.md) |
 | Hendak men-deploy ke production | [DEPLOYMENT.md](./DEPLOYMENT.md) |
 | Ingin memahami struktur database | [DATABASE.md](./DATABASE.md) |
 | Mencari jawaban atas masalah umum | [FAQ.md](./FAQ.md) |
