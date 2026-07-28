@@ -245,3 +245,25 @@
   color: var(--text-muted);
   font-weight: 500;
 }
+
+@media (max-width: 768px) {
+  .title {
+    font-size: var(--text-xl);
+  }
+
+  .meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+
+  .analysisItem {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+
+  .analysisRight {
+    margin-left: 0;
+  }
+}

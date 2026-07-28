@@ -89,12 +89,6 @@
   color: var(--error);
 }
 
-.registerSuccess {
-  margin-top: var(--space-2);
-  font-size: var(--text-sm);
-  color: var(--success);
-}
-
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));

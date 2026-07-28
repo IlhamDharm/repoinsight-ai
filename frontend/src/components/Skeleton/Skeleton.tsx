@@ -46,13 +46,3 @@ export function SkeletonCard() {
     </div>
   );
 }
-
-export function SkeletonStat() {
-  return (
-    <div className={styles.stat}>
-      <Skeleton width="28px" height="28px" borderRadius="var(--radius-lg)" />
-      <Skeleton width="40%" height="1.5rem" />
-      <Skeleton width="60%" height="0.75rem" />
-    </div>
-  );
-}

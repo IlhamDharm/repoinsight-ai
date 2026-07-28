@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db_session
 from app.core.dependencies import get_current_user, get_request_id_dependency, verify_analysis_owner
-from app.core.exceptions import ForbiddenError, NotFoundError
+
 from app.core.response import build_success_payload
 from app.db.models import AnalysisStatus, User
 from app.repositories.repository import RepositoryRepository
@@ -49,7 +49,7 @@ async def get_analysis_status(
     response_data = AnalysisStatusResponse(
         id=analysis.id,
         repository_id=analysis.repository_id,
-        status=analysis.status.value if hasattr(analysis.status, "value") else str(analysis.status),
+        status=analysis.status.value,
         started_at=analysis.started_at,
         completed_at=analysis.completed_at,
         created_at=analysis.created_at,
@@ -90,12 +90,13 @@ async def compare_analyses(
     )
 
     response_data = AnalysisComparisonResponse(data=comparison_data)
+    response_dict = response_data.model_dump(mode="json")
 
     return JSONResponse(
         status_code=200,
         content=build_success_payload(
-            response_data.model_dump(mode="json")["data"],
+            response_dict["data"],
             request_id=request_id,
-            meta_extra=response_data.model_dump(mode="json")["meta"],
+            meta_extra=response_dict["meta"],
         ),
     )

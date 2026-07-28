@@ -104,9 +104,9 @@ export function RepositoryDetailPage() {
 
   return (
     <div className={styles.page}>
-      <nav className={styles.breadcrumb}>
+      <nav className={styles.breadcrumb} aria-label="Breadcrumb">
         <Link to="/repositories" className={styles.breadcrumbLink}>Repositories</Link>
-        <span className={styles.breadcrumbSep}>/</span>
+        <span className={styles.breadcrumbSep} aria-hidden="true">/</span>
         <span className={styles.breadcrumbCurrent}>{repository.name}</span>
       </nav>
 
@@ -142,6 +142,7 @@ export function RepositoryDetailPage() {
           className={styles.analyzeButton}
           onClick={handleAnalyze}
           disabled={isStartingAnalysis}
+          aria-label="Start new analysis"
         >
           {isStartingAnalysis ? "Menjadwalkan..." : "Mulai Analisis Baru"}
         </button>
@@ -199,6 +200,7 @@ export function RepositoryDetailPage() {
                   className={styles.pageButton}
                   disabled={page <= 1}
                   onClick={() => setPage((p) => p - 1)}
+                  aria-label="Previous page"
                 >
                   Sebelumnya
                 </button>
@@ -209,6 +211,7 @@ export function RepositoryDetailPage() {
                   className={styles.pageButton}
                   disabled={page >= totalPages}
                   onClick={() => setPage((p) => p + 1)}
+                  aria-label="Next page"
                 >
                   Selanjutnya
                 </button>

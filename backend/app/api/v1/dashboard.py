@@ -70,21 +70,30 @@ async def get_dashboard_stats(
             .limit(5)
         )
         recent_result = await session.execute(recent_stmt)
-        for row in recent_result.all():
+        recent_rows = recent_result.all()
+
+        completed_ids = [row.id for row in recent_rows if row.status == AnalysisStatus.COMPLETED]
+        scores_map: dict[int, dict] = {}
+        if completed_ids:
+            scores_stmt = select(Analysis.id, Analysis.scores).where(
+                Analysis.id.in_(completed_ids)
+            )
+            scores_result = await session.execute(scores_stmt)
+            for scores_row in scores_result.all():
+                scores_map[scores_row.id] = scores_row.scores or {}
+
+        for row in recent_rows:
             score = None
-            if row.status == AnalysisStatus.COMPLETED:
-                score_stmt = select(Analysis.scores).where(Analysis.id == row.id)
-                score_result = await session.execute(score_stmt)
-                scores = score_result.scalar()
-                if scores and isinstance(scores, dict):
-                    values = [v for v in scores.values() if isinstance(v, (int, float))]
-                    if values:
-                        score = round(sum(values) / len(values))
+            scores = scores_map.get(row.id)
+            if scores and isinstance(scores, dict):
+                values = [v for v in scores.values() if isinstance(v, (int, float))]
+                if values:
+                    score = round(sum(values) / len(values))
 
             recent_analyses.append(
                 {
                     "id": row.id,
-                    "status": row.status.value if hasattr(row.status, "value") else str(row.status),
+                    "status": row.status.value,
                     "created_at": row.created_at.isoformat() if row.created_at else None,
                     "completed_at": row.completed_at.isoformat() if row.completed_at else None,
                     "repository_id": row.repository_id,

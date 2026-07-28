@@ -19,35 +19,6 @@
   color: var(--accent-light);
 }
 
-.breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: var(--text-sm);
-  color: var(--text-muted);
-  margin-bottom: var(--space-4);
-}
-
-.breadcrumbLink {
-  color: var(--text-muted);
-  text-decoration: none;
-  transition: color var(--transition-fast);
-  font-weight: 500;
-}
-
-.breadcrumbLink:hover {
-  color: var(--accent-light);
-}
-
-.breadcrumbSep {
-  color: var(--text-disabled);
-}
-
-.breadcrumbCurrent {
-  color: var(--text-primary);
-  font-weight: 500;
-}
-
 .header {
   margin-bottom: var(--space-8);
 }

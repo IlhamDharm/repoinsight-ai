@@ -39,20 +39,6 @@ class AnalysisScoresSchema(BaseModel):
     maintainability: int
 
 
-class AnalysisResponse(BaseModel):
-    id: int
-    repository_id: int
-    status: str
-    started_at: datetime | None = None
-    completed_at: datetime | None = None
-    created_at: datetime
-    error_message: str | None = None
-    summary: dict[str, Any] | None = None
-    scores: dict[str, int] | None = None
-    findings: list[dict[str, Any]] | None = None
-    recommendations: list[str] | None = None
-
-
 # ─── Sprint 9: Async Workflow Schemas ─────────────────────────────────────────
 
 class AnalysisJobResponse(BaseModel):

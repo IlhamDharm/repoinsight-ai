@@ -225,7 +225,7 @@ async def analyze_repository(
     response_data = AnalysisJobResponse(
         analysis_id=analysis.id,
         repository_id=analysis.repository_id,
-        status=analysis.status.value if hasattr(analysis.status, "value") else str(analysis.status),
+        status=analysis.status.value,
     )
 
     return JSONResponse(
@@ -257,11 +257,13 @@ async def get_analysis_history(
         page_size=page_size
     )
 
+    response_dict = history_response.model_dump(mode="json")
+
     return JSONResponse(
         status_code=200,
         content=build_success_payload(
-            history_response.model_dump(mode="json")["data"],
+            response_dict["data"],
             request_id=request_id,
-            meta_extra=history_response.model_dump(mode="json")["meta"],
+            meta_extra=response_dict["meta"],
         ),
     )

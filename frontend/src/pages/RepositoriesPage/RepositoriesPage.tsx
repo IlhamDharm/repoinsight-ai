@@ -182,6 +182,7 @@ export function RepositoriesPage() {
                 className={styles.pageButton}
                 disabled={page <= 1}
                 onClick={() => setPage((p) => p - 1)}
+                aria-label="Previous page"
               >
                 ← Sebelumnya
               </button>
@@ -192,6 +193,7 @@ export function RepositoriesPage() {
                 className={styles.pageButton}
                 disabled={page >= totalPages}
                 onClick={() => setPage((p) => p + 1)}
+                aria-label="Next page"
               >
                 Selanjutnya →
               </button>
