@@ -57,7 +57,7 @@ async def get_analysis_status(
     if analysis.status == AnalysisStatus.FAILED:
         error_payload = AnalysisErrorPayload(
             code="ANALYSIS_FAILED",
-            message="Analysis failed. Please check the error details or retry.",
+            message=analysis.error_message or "Analysis failed. Please check the error details or retry.",
         )
 
     response_data = AnalysisStatusResponse(

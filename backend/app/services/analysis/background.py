@@ -34,6 +34,28 @@ from app.services.repository_scanner import RepositoryScanService
 logger = logging.getLogger("repoinsight.services.background_analysis")
 
 
+_ERROR_MESSAGE_MAP: dict[str, str] = {
+    "GitHubRateLimitError": "GitHub API rate limit terlampaui. Tunggu beberapa saat lalu coba lagi.",
+    "GitHubAuthError": "Autentikasi GitHub gagal. Periksa REPOINSIGHT_GITHUB_TOKEN di .env.",
+    "GitHubNotFoundError": "Repository tidak ditemukan di GitHub. Pastikan URL dan akses benar.",
+    "GitHubTimeoutError": "Permintaan ke GitHub timeout. Coba lagi nanti.",
+    "GitHubConnectionError": "Gagal terhubung ke GitHub. Periksa koneksi internet Anda.",
+    "ExternalServiceError": "Layanan eksternal mengalami gangguan. Coba lagi nanti.",
+}
+
+
+def _sanitize_error_message(exc: Exception) -> str:
+    """Konversi exception ke safe user-friendly message.
+
+    Error types yang dikenal akan mendapatkan pesan spesifik.
+    Error types lain mendapatkan pesan umum tanpa detail internal.
+    """
+    exc_type = type(exc).__name__
+    if exc_type in _ERROR_MESSAGE_MAP:
+        return _ERROR_MESSAGE_MAP[exc_type]
+    return "Terjadi kesalahan internal saat menjalankan analisis. Silakan coba lagi."
+
+
 async def run_background_analysis(
     analysis_id: int,
     repository_id: int,
@@ -124,8 +146,7 @@ async def run_background_analysis(
                 type(exc).__name__,
             )
 
-            # Safe error message tanpa stack trace
-            safe_message = f"{type(exc).__name__}: {str(exc)}"[:1000]
+            safe_message = _sanitize_error_message(exc)
 
             try:
                 # Buat sesi baru untuk update FAILED (sesi lama mungkin sudah rusak)
