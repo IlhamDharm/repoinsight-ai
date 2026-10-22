@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     debug: bool = False
     database_url: str = "postgresql+asyncpg://postgres:12345678@localhost:5432/repoinsight_ai"
     database_echo: bool = False
+    cors_origins: list[str] = ["http://localhost:3000"]
 
     # GitHub Integration
     github_api_url: str = "https://api.github.com"
