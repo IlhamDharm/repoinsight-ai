@@ -39,6 +39,8 @@ def normalize_database_url(url: str) -> str:
     """
     if url.startswith("postgresql+asyncpg://"):
         return url
+    if url.startswith("postgres://"):
+        return "postgresql+asyncpg://" + url[len("postgres://"):]
     if url.startswith("postgresql://"):
         return "postgresql+asyncpg://" + url[len("postgresql://"):]
     return url

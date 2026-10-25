@@ -7,8 +7,11 @@ from app.main import app
 
 
 def test_normalize_neon_url_uses_asyncpg() -> None:
-    url = "postgresql://user:password@host/db?sslmode=require"
-    assert normalize_database_url(url) == "postgresql+asyncpg://user:password@host/db?sslmode=require"
+    for url in (
+        "postgresql://user:password@host/db?sslmode=require",
+        "postgres://user:password@host/db?sslmode=require",
+    ):
+        assert normalize_database_url(url) == "postgresql+asyncpg://user:password@host/db?sslmode=require"
 
 
 def test_database_health_endpoint_returns_success() -> None:

@@ -12,6 +12,34 @@ settings = get_settings()
 
 
 @router.get(
+    "",
+    summary="Health summary",
+    description="Returns application liveness and database connectivity.",
+)
+async def health_summary(
+    request: Request,
+    request_id: str = Depends(get_request_id_dependency),
+) -> JSONResponse:
+    try:
+        database = await check_database_health()
+        return JSONResponse(
+            status_code=200,
+            content=build_success_payload(
+                {"service": settings.app_name, "environment": settings.environment, **database},
+                request_id=request_id,
+            ),
+        )
+    except Exception as exc:
+        return JSONResponse(
+            status_code=503,
+            content=build_error_payload(
+                "Database unavailable", "database_unavailable", request_id=request_id,
+                details={"detail": str(exc)},
+            ),
+        )
+
+
+@router.get(
     "/live",
     summary="Liveness probe",
     description="Returns application status. Use for Kubernetes liveness probes.",

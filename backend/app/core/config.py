@@ -7,7 +7,8 @@ class Settings(BaseSettings):
     app_name: str = "RepoInsight AI API"
     environment: str = "development"
     debug: bool = False
-    database_url: str = "postgresql+asyncpg://postgres:12345678@localhost:5432/repoinsight_ai"
+    # Single source of truth for PostgreSQL/Neon. Override in .env or Vercel.
+    database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/repoinsight_ai"
     database_echo: bool = False
     cors_origins: list[str] = ["http://localhost:3000"]
 
