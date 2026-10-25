@@ -2,6 +2,7 @@ import asyncio
 import sys
 import weakref
 from collections.abc import AsyncIterator
+from urllib.parse import urlsplit, urlunsplit
 from typing import Any
 
 from sqlalchemy import text
@@ -31,6 +32,19 @@ _engine_by_loop: weakref.WeakKeyDictionary[asyncio.AbstractEventLoop, AsyncEngin
 _session_factory_by_loop: weakref.WeakKeyDictionary[asyncio.AbstractEventLoop, async_sessionmaker[AsyncSession]] = weakref.WeakKeyDictionary()
 
 
+def normalize_database_url(url: str) -> str:
+    """Ensure PostgreSQL URLs use the asyncpg SQLAlchemy dialect.
+
+    Neon provides URLs beginning with ``postgresql://``. SQLAlchemy otherwise
+    selects psycopg2, while this service intentionally ships asyncpg only.
+    """
+    if url.startswith("postgresql+asyncpg://"):
+        return url
+    if url.startswith("postgresql://"):
+        return "postgresql+asyncpg://" + url[len("postgresql://"):]
+    return url
+
+
 def init_database() -> tuple[AsyncEngine, async_sessionmaker[AsyncSession]]:
     loop = asyncio.get_running_loop()
 
@@ -39,7 +53,7 @@ def init_database() -> tuple[AsyncEngine, async_sessionmaker[AsyncSession]]:
 
     settings = get_settings()
     engine = create_async_engine(
-        settings.database_url,
+        normalize_database_url(settings.database_url),
         echo=settings.database_echo,
         poolclass=NullPool,
     )
@@ -64,6 +78,13 @@ async def get_db_session() -> AsyncIterator[AsyncSession]:
     session_factory = get_session_factory()
     async with session_factory() as session:
         yield session
+
+
+async def initialize_database_schema() -> None:
+    """Create missing ORM tables for a new deployment/database."""
+    engine = get_engine()
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)
 
 
 async def check_database_health() -> dict[str, Any]:

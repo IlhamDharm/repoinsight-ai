@@ -2,8 +2,13 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import text
 
-from app.core.database import get_db_session
+from app.core.database import get_db_session, normalize_database_url
 from app.main import app
+
+
+def test_normalize_neon_url_uses_asyncpg() -> None:
+    url = "postgresql://user:password@host/db?sslmode=require"
+    assert normalize_database_url(url) == "postgresql+asyncpg://user:password@host/db?sslmode=require"
 
 
 def test_database_health_endpoint_returns_success() -> None:

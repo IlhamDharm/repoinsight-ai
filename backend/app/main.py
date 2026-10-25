@@ -1,4 +1,5 @@
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -12,6 +13,7 @@ from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.health import router as health_router
 from app.api.v1.repositories import router as repositories_router
 from app.core.config import get_settings
+from app.core.database import initialize_database_schema
 from app.core.dependencies import get_request_id_dependency
 from app.core.exceptions import AppException
 from app.core.logging import configure_logging
@@ -22,7 +24,19 @@ configure_logging()
 logger = logging.getLogger("repoinsight.api")
 settings = get_settings()
 
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    try:
+        await initialize_database_schema()
+        logger.info("Database schema initialized")
+    except Exception:
+        logger.exception("Database schema initialization failed")
+    yield
+
+
 app = FastAPI(
+    lifespan=lifespan,
     title=settings.app_name,
     version="0.1.0",
     description=(
