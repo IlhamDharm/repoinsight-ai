@@ -35,6 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.getItem("repoinsight_token"),
   );
   const [isLoading, setIsLoading] = useState(true);
+  const authDisabled = import.meta.env.VITE_AUTH_ENABLED === "false";
 
   const fetchCurrentUser = useCallback(async () => {
     try {
@@ -48,12 +49,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (token) {
+    if (authDisabled) {
+      setUser({ id: 0, email: "demo@localhost", is_active: true });
+      setIsLoading(false);
+    } else if (token) {
       fetchCurrentUser().finally(() => setIsLoading(false));
     } else {
       setIsLoading(false);
     }
-  }, [token, fetchCurrentUser]);
+  }, [authDisabled, token, fetchCurrentUser]);
 
   const login = useCallback(async (email: string, password: string) => {
     const data = await api.post<TokenResponse>("/api/v1/auth/login", {

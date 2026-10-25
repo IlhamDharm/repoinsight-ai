@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     github_token: str = ""
     github_timeout: float = 10.0
 
+    # Authentication (disable only for trusted local/demo deployments)
+    auth_enabled: bool = True
+
     # JWT Authentication
     jwt_secret_key: str = "repoinsight-dev-secret-key-change-in-production-2026"
     jwt_algorithm: str = "HS256"

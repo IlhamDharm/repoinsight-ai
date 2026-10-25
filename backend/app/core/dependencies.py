@@ -37,11 +37,22 @@ async def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     session: AsyncSession = Depends(get_db_session),
 ) -> User:
-    """FastAPI dependency untuk mendapatkan user yang terautentikasi dari JWT token.
+    """Resolve the current user, or the first active user in demo mode.
 
-    Membaca Bearer token, memvalidasi JWT, mengambil user dari database.
-    Menolak token invalid, expired, atau user tidak valid/inactive.
+    Authentication remains enabled by default. When explicitly disabled for a
+    trusted local/demo deployment, all requests use the first active account so
+    existing ownership and foreign-key rules continue to work.
     """
+    settings = get_settings()
+    if not settings.auth_enabled:
+        user_repo = UserRepository(session)
+        users = await user_repo.list(limit=1_000_000)
+        active_user = next((candidate for candidate in users if candidate.is_active), None)
+        if active_user is None:
+            from app.core.exceptions import AuthenticationError
+            raise AuthenticationError("Buat minimal satu akun sebelum menonaktifkan login")
+        return active_user
+
     if credentials is None:
         from app.core.exceptions import AuthenticationError
         raise AuthenticationError("Token tidak ditemukan")

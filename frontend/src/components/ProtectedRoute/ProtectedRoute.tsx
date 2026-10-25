@@ -4,6 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
+  const authDisabled = import.meta.env.VITE_AUTH_ENABLED === "false";
 
   if (isLoading) {
     return (
@@ -14,7 +15,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!authDisabled && !isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
