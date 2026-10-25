@@ -2,7 +2,6 @@ import asyncio
 import sys
 import weakref
 from collections.abc import AsyncIterator
-from urllib.parse import urlsplit, urlunsplit
 from typing import Any
 
 from sqlalchemy import text
