@@ -4,7 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
-  const authDisabled = import.meta.env.VITE_AUTH_ENABLED === "false";
+  const authDisabled = import.meta.env.VITE_AUTH_ENABLED !== "true";
 
   if (isLoading) {
     return (

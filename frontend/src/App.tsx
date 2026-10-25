@@ -12,7 +12,7 @@ import { AnalysisResultPage } from "./pages/AnalysisResultPage/AnalysisResultPag
 import { NotFoundPage } from "./pages/NotFoundPage/NotFoundPage";
 
 export default function App() {
-  const authDisabled = import.meta.env.VITE_AUTH_ENABLED === "false";
+  const authDisabled = import.meta.env.VITE_AUTH_ENABLED !== "true";
 
   return (
     <ErrorBoundary>

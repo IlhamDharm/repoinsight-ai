@@ -16,8 +16,8 @@ class Settings(BaseSettings):
     github_token: str = ""
     github_timeout: float = 10.0
 
-    # Authentication (disable only for trusted local/demo deployments)
-    auth_enabled: bool = True
+    # Authentication is opt-in; set REPOINSIGHT_AUTH_ENABLED=true to require login.
+    auth_enabled: bool = False
 
     # JWT Authentication
     jwt_secret_key: str = "repoinsight-dev-secret-key-change-in-production-2026"

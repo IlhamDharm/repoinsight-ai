@@ -35,7 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.getItem("repoinsight_token"),
   );
   const [isLoading, setIsLoading] = useState(true);
-  const authDisabled = import.meta.env.VITE_AUTH_ENABLED === "false";
+  const authDisabled = import.meta.env.VITE_AUTH_ENABLED !== "true";
 
   const fetchCurrentUser = useCallback(async () => {
     try {
