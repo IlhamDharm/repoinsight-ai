@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.core.database import get_db_session
 from app.core.middleware import get_request_id
-from app.core.security import decode_access_token
+from app.core.security import decode_access_token, hash_password
 from app.db.models import User
 from app.integrations.github.client import GitHubClient
 from app.repositories.user import UserRepository
@@ -49,8 +49,14 @@ async def get_current_user(
         users = await user_repo.list(limit=1_000_000)
         active_user = next((candidate for candidate in users if candidate.is_active), None)
         if active_user is None:
-            from app.core.exceptions import AuthenticationError
-            raise AuthenticationError("Buat minimal satu akun sebelum menonaktifkan login")
+            active_user = User(
+                email="demo@repoinsight.local",
+                password_hash=hash_password("disabled-login"),
+                is_active=True,
+            )
+            active_user = await user_repo.create(active_user)
+            await session.commit()
+            await session.refresh(active_user)
         return active_user
 
     if credentials is None:

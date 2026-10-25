@@ -5,7 +5,6 @@ import { ApiError } from "../../utils/errors";
 import { ErrorDisplay } from "../../components/ErrorDisplay/ErrorDisplay";
 import { LoadingSpinner } from "../../components/LoadingSpinner/LoadingSpinner";
 import { StatusBadge } from "../../components/StatusBadge/StatusBadge";
-import { useAuth } from "../../context/AuthContext";
 import type { DashboardStats } from "../../types/api";
 import styles from "./DashboardPage.module.css";
 
@@ -46,7 +45,7 @@ function getRepoColor(name: string): string {
 }
 
 export function DashboardPage() {
-  const { user } = useAuth();
+  const user = { email: "demo@repoinsight.local" };
   const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);

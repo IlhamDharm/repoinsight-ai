@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
 import styles from "./Navbar.module.css";
 
 export function Navbar() {
-  const { user, logout } = useAuth();
+  const user = { email: "demo@repoinsight.local" };
   const [mobileOpen, setMobileOpen] = useState(false);
   const initial = user?.email?.charAt(0).toUpperCase() || "?";
 
@@ -45,9 +44,7 @@ export function Navbar() {
         <div className={styles.userArea}>
           <div className={styles.avatar}>{initial}</div>
           <span className={styles.email}>{user?.email}</span>
-          <button className={styles.logoutButton} onClick={logout}>
-            Keluar
-          </button>
+          <span className={styles.logoutButton}>Mode Demo</span>
         </div>
 
         {/* Mobile toggle */}
