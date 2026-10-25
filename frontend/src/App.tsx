@@ -12,13 +12,18 @@ import { AnalysisResultPage } from "./pages/AnalysisResultPage/AnalysisResultPag
 import { NotFoundPage } from "./pages/NotFoundPage/NotFoundPage";
 
 export default function App() {
+  const authDisabled = import.meta.env.VITE_AUTH_ENABLED === "false";
+
   return (
     <ErrorBoundary>
       <BrowserRouter>
         <AuthProvider>
           <ToastProvider>
             <Routes>
-              <Route path="/login" element={<LoginPage />} />
+              <Route
+                path="/login"
+                element={authDisabled ? <Navigate to="/dashboard" replace /> : <LoginPage />}
+              />
               <Route
                 element={
                   <ProtectedRoute>
